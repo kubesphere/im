@@ -181,6 +181,12 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 			}
 			req.UserId = inUserIds
 		}
+		if len(req.UserId) == 0 {
+			return &pb.ListUsersResponse{
+				UserSet: []*pb.User{},
+				Total:   0,
+			}, nil
+		}
 	}
 
 	var users []*models.User
