@@ -22,7 +22,6 @@ import (
 	"os"
 
 	"github.com/urfave/cli"
-
 	"openpitrix.io/logger"
 
 	"kubesphere.io/im/pkg/config"

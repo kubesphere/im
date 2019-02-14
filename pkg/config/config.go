@@ -23,7 +23,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/koding/multiconfig"
-
+	yaml "gopkg.in/yaml.v2"
 	"openpitrix.io/logger"
 
 	"kubesphere.io/im/pkg/util/jsonutil"

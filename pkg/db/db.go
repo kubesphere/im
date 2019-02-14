@@ -18,7 +18,6 @@ package db
 
 import (
 	"github.com/jinzhu/gorm"
-
 	"openpitrix.io/logger"
 
 	"kubesphere.io/im/pkg/config"
@@ -35,7 +34,7 @@ type Options struct {
 	SqlInitData  []string
 }
 
-func OpenDatabase(cfg *config.Config, opt *Options) (*Database, error) {
+func OpenDatabase(cfg *config.Config) (*Database, error) {
 	cfg = cfg.Clone()
 
 	logger.Infof(nil, "DB config: begin")
