@@ -1,0 +1,282 @@
+/*
+Copyright 2019 The KubeSphere Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+syntax = "proto3";
+
+package kubesphere;
+
+option go_package = "pb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+// ----------------------------------------------------------------------------
+// service api type
+// ----------------------------------------------------------------------------
+
+message GetVersionRequest {
+}
+
+message GetVersionResponse {
+	string version = 1;
+}
+
+message CreateGroupRequest {
+	string parent_group_id = 1;
+	string group_name = 2;
+	string description = 3;
+	map<string, string> extra = 4;
+}
+
+message CreateGroupResponse {
+	string group_id = 1;
+}
+
+message DeleteGroupsRequest {
+	repeated string group_id = 1;
+}
+
+message DeleteGroupsResponse {
+	repeated string group_id = 1;
+}
+
+message ModifyGroupRequest {
+	string group_id = 1;
+	string parent_group_id = 2;
+	string group_name = 3;
+	string description = 4;
+	map<string, string> extra = 5;
+}
+
+message ModifyGroupResponse {
+	string group_id = 1;
+}
+
+message Group {
+	string parent_group_id = 1;
+	string group_id = 2; // regexp: ^[a-z0-9_-]{2,255}$, primary key
+	string group_path = 3; // regexp: ^[a-z0-9_.-]{2,255}$, read only
+	string group_name = 4;
+	string description = 5;
+	string status = 6;
+	map<string, string> extra = 7;
+	google.protobuf.Timestamp create_time = 8; // read only
+	google.protobuf.Timestamp update_time = 9; // read only
+	google.protobuf.Timestamp status_time = 10; // read only
+}
+
+message GroupWithUser {
+	Group group = 1;
+	repeated User user_set = 2;
+}
+
+message GetGroupRequest {
+	string group_id = 1;
+}
+
+message GetGroupResponse {
+	Group group = 1;
+}
+
+message GetGroupWithUserResponse {
+	GroupWithUser group = 1;
+}
+
+message ListGroupsRequest {
+	string search_word = 1;
+	string sort_key = 2;
+	bool reverse = 3;
+	uint32 offset = 4;
+	uint32 limit = 5;
+
+	repeated string parent_group_id = 6;
+	repeated string group_id = 7;
+	repeated string group_path = 8;
+	repeated string group_name = 9;
+	repeated string status = 10;
+}
+
+message ListGroupsResponse {
+	uint32 total = 1;
+	repeated Group group_set = 2;
+}
+
+message ListGroupsWithUserResponse {
+	uint32 total = 1;
+	repeated GroupWithUser group_set = 2;
+}
+
+message CreateUserRequest {
+	string username = 1;
+	string email = 2;
+	string phone_number = 3;
+	string description = 4;
+	string password = 5;
+	map<string, string> extra = 6;
+}
+
+message CreateUserResponse {
+	string user_id = 1;
+}
+
+message DeleteUsersRequest {
+	repeated string user_id = 1;
+}
+
+message DeleteUsersResponse {
+	repeated string user_id = 1;
+}
+
+message ModifyUserRequest {
+	string user_id = 1;
+	string username = 2;
+	string email = 3;
+	string phone_number = 4;
+	string description = 5;
+	map<string, string> extra = 7;
+}
+
+message ModifyUserResponse {
+	string user_id = 1;
+}
+
+message User {
+	string user_id = 1; // regexp: ^[a-z0-9_-]{2,32}$, primary key
+	string username = 2;
+	string email = 3;
+	string phone_number = 4;
+	string description = 5;
+	string password = 6;
+	string status = 7;
+	map<string, string> extra = 8;
+	google.protobuf.Timestamp create_time = 9; // read only
+	google.protobuf.Timestamp update_time = 10; // read only
+	google.protobuf.Timestamp status_time = 11; // read only
+}
+
+message UserWithGroup {
+	User user = 1;
+	repeated Group group_set = 2;
+}
+
+message GetUserRequest {
+	string user_id = 1;
+}
+
+message GetUserResponse {
+	User user = 1;
+}
+
+message GetUserWithGroupResponse {
+	UserWithGroup user = 1;
+}
+
+message ListUsersRequest {
+	string search_word = 1;
+	string sort_key = 2;
+	bool reverse = 3;
+	uint32 offset = 4;
+	uint32 limit = 5;
+
+	repeated string group_id = 6;
+	repeated string user_id = 7;
+	repeated string username = 8;
+	repeated string email = 9;
+	repeated string phone_number = 10;
+	repeated string status = 11;
+}
+
+message ListUsersResponse {
+	uint32 total = 1;
+	repeated User user_set = 2;
+}
+
+message ListUsersWithGroupResponse {
+	uint32 total = 1;
+	repeated UserWithGroup user_set = 2;
+}
+
+message JoinGroupRequest {
+	repeated string group_id = 1;
+	repeated string user_id = 2;
+}
+
+message JoinGroupResponse {
+	repeated string group_id = 1;
+	repeated string user_id = 2;
+}
+
+message LeaveGroupRequest {
+	repeated string group_id = 1;
+	repeated string user_id = 2;
+}
+
+message LeaveGroupResponse {
+	repeated string group_id = 1;
+	repeated string user_id = 2;
+}
+
+message ModifyPasswordRequest {
+	string user_id = 1;
+	string password = 2;
+}
+
+message ModifyPasswordResponse {
+	string user_id = 1;
+}
+
+message ComparePasswordRequest {
+	string user_id = 1;
+	string password = 2;
+}
+
+message ComparePasswordResponse {
+	bool ok = 1;
+}
+
+// ----------------------------------------------------------------------------
+// service api
+// ----------------------------------------------------------------------------
+
+service IdentityManager {
+	rpc GetVersion (GetVersionRequest) returns (GetVersionResponse);
+
+	rpc CreateGroup (CreateGroupRequest) returns (CreateGroupResponse);
+	rpc DeleteGroups (DeleteGroupsRequest) returns (DeleteGroupsResponse);
+	rpc ModifyGroup (ModifyGroupRequest) returns (ModifyGroupResponse);
+	rpc GetGroup (GetGroupRequest) returns (GetGroupResponse);
+	rpc GetGroupWithUser (GetGroupRequest) returns (GetGroupWithUserResponse);
+	rpc ListGroups (ListGroupsRequest) returns (ListGroupsResponse);
+	rpc ListGroupsWithUser (ListGroupsRequest) returns (ListGroupsWithUserResponse);
+
+	rpc CreateUser (CreateUserRequest) returns (CreateUserResponse);
+	rpc DeleteUsers (DeleteUsersRequest) returns (DeleteUsersResponse);
+	rpc ModifyUser (ModifyUserRequest) returns (ModifyUserResponse);
+	rpc GetUser (GetUserRequest) returns (GetUserResponse);
+	rpc GetUserWithGroup (GetUserRequest) returns (GetUserWithGroupResponse);
+	rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
+	rpc ListUsersWithGroup (ListUsersRequest) returns (ListUsersWithGroupResponse);
+
+	rpc JoinGroup (JoinGroupRequest) returns (JoinGroupResponse);
+	rpc LeaveGroup (LeaveGroupRequest) returns (LeaveGroupResponse);
+
+	rpc ComparePassword (ComparePasswordRequest) returns (ComparePasswordResponse);
+	rpc ModifyPassword (ModifyPasswordRequest) returns (ModifyPasswordResponse);
+}
+
+// ----------------------------------------------------------------------------
+// END
+// ----------------------------------------------------------------------------

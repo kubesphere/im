@@ -1,0 +1,22 @@
+sudo: required
+services:
+- docker
+language: go
+go:
+- '1.11.4'
+go_import_path: kubesphere.io/im
+script:
+- make fmt-check
+- make check
+- make test
+deploy:
+- provider: script
+  script: bash docker_push latest
+  on:
+    branch: master
+    repo: kubesphere/im
+- provider: script
+  script: bash docker_push $TRAVIS_TAG
+  on:
+    tags: true
+    repo: kubesphere/im
