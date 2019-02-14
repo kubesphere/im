@@ -14,15 +14,11 @@
 
 PWD:=$(shell pwd)
 
-DEFAULT_HOST:=localhost:9115
-
-SERVER_HOST := $(if ${OPENPITRIX_IAM_HOST},${OPENPITRIX_IAM_HOST},${DEFAULT_HOST})
-
 TARG.Name:=kubesphere
 TRAG.Gopkg:=kubesphere.io/im
 TRAG.Version:=$(TRAG.Gopkg)/pkg/version
 
-GO_FMT:=goimports -l -w -e -local=openpitrix -srcdir=/go/src/$(TRAG.Gopkg)
+GO_FMT:=goimports -l -w -e -local=kubesphere -srcdir=/go/src/$(TRAG.Gopkg)
 GO_MOD_TIDY:=go mod tidy
 GO_RACE:=go build -race
 GO_VET:=go vet
@@ -51,21 +47,8 @@ empty:=
 space:= $(empty) $(empty)
 CMDS=$(subst $(comma),$(space),$(CMD))
 
-list-method:
-	grpcurl -plaintext ${SERVER_HOST} list
-	grpcurl -plaintext ${SERVER_HOST} list openpitrix.iam.im.AccountManager
-
-list-group:
-	grpcurl -plaintext ${SERVER_HOST} openpitrix.iam.im.AccountManager/ListGroups
-	@echo
-
-	curl ${SERVER_HOST}/v1.1/groups | jq .
-	@echo
-	@echo
-
-
 test:
-	go test ./...
+	env GO111MODULE=on go test ./...
 
 .PHONY: generate-in-local
 generate-in-local: ## Generate code from protobuf file in local

@@ -20,6 +20,7 @@ import (
 	"crypto/rand"
 
 	"github.com/sony/sonyflake"
+	hashids "github.com/speps/go-hashids"
 
 	"kubesphere.io/im/pkg/util/strutil"
 )

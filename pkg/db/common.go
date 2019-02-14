@@ -23,7 +23,6 @@ import (
 	"github.com/fatih/structs"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/jinzhu/gorm"
-
 	"openpitrix.io/logger"
 
 	"kubesphere.io/im/pkg/constants"
