@@ -159,12 +159,11 @@ message User {
 	string email = 3;
 	string phone_number = 4;
 	string description = 5;
-	string password = 6;
-	string status = 7;
-	map<string, string> extra = 8;
-	google.protobuf.Timestamp create_time = 9; // read only
-	google.protobuf.Timestamp update_time = 10; // read only
-	google.protobuf.Timestamp status_time = 11; // read only
+	string status = 6;
+	map<string, string> extra = 7;
+	google.protobuf.Timestamp create_time = 8; // read only
+	google.protobuf.Timestamp update_time = 9; // read only
+	google.protobuf.Timestamp status_time = 10; // read only
 }
 
 message UserWithGroup {

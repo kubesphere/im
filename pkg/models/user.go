@@ -92,7 +92,6 @@ func (p *User) ToProtoMessage() (*pb.User, error) {
 		Email:       p.Email,
 		PhoneNumber: p.PhoneNumber,
 		Description: p.Description,
-		Password:    p.Password,
 		Status:      p.Status,
 	}
 
