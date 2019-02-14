@@ -24,7 +24,6 @@ import (
 	"openpitrix.io/logger"
 
 	"kubesphere.io/im/pkg/config"
-	"kubesphere.io/im/pkg/constants"
 	"kubesphere.io/im/pkg/db"
 	"kubesphere.io/im/pkg/manager"
 	"kubesphere.io/im/pkg/pb"
@@ -44,13 +43,13 @@ func Serve(cfg *config.Config) {
 			logger.Criticalf(nil, "Constructs TLS credentials failed: %+v", err)
 			os.Exit(1)
 		}
-		manager.NewGrpcServer(constants.IMServiceName, constants.IMServicePort).
+		manager.NewGrpcServer(cfg.Host, cfg.Port).
 			Serve(func(server *grpc.Server) {
 				pb.RegisterIdentityManagerServer(server, s)
 				grpc.Creds(creds)
 			})
 	} else {
-		manager.NewGrpcServer(constants.IMServiceName, constants.IMServicePort).
+		manager.NewGrpcServer(cfg.Host, cfg.Port).
 			Serve(func(server *grpc.Server) {
 				pb.RegisterIdentityManagerServer(server, s)
 			})

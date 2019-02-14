@@ -30,8 +30,3 @@ const (
 	StatusActive  = "active"
 	StatusDeleted = "deleted"
 )
-
-const (
-	IMServiceName = "im-service"
-	IMServicePort = 9119
-)
