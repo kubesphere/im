@@ -17,18 +17,22 @@ limitations under the License.
 package constants
 
 const (
-	ColumnUserId      = "user_id"
-	ColumnGroupId     = "group_id"
-	ColumnCreateTime  = "create_time"
-	ColumnUpdateTime  = "update_time"
-	ColumnStatusTime  = "status_time"
-	ColumnStatus      = "status"
-	ColumnPassword    = "password"
-	ColumnEmail       = "email"
-	ColumnPhoneNumber = "phone_number"
-	ColumnGroupPath   = "group_path"
-	ColumnUsername    = "username"
-	ColumnGroupName   = "group_name"
+	ColumnUserId         = "user_id"
+	ColumnGroupId        = "group_id"
+	ColumnCreateTime     = "create_time"
+	ColumnUpdateTime     = "update_time"
+	ColumnStatusTime     = "status_time"
+	ColumnStatus         = "status"
+	ColumnPassword       = "password"
+	ColumnEmail          = "email"
+	ColumnPhoneNumber    = "phone_number"
+	ColumnGroupPath      = "group_path"
+	ColumnUsername       = "username"
+	ColumnGroupName      = "group_name"
+	ColumnParentGroupId  = "parent_group_id"
+	ColumnGroupPathLevel = "group_path_level"
+	ColumnDescription    = "description"
+	ColumnExtra          = "extra"
 )
 
 const (

@@ -34,7 +34,7 @@ func Decode(y []byte, o interface{}) error {
 func ToString(o interface{}) string {
 	b, err := Encode(o)
 	if err != nil {
-		logger.Errorf(nil, "Failed to encode [%+v], error: %+v", o, err)
+		logger.Errorf(nil, "Encode [%+v] failed: %+v", o, err)
 		return ""
 	}
 	return string(b)
@@ -46,12 +46,12 @@ func ToJson(o interface{}) Json {
 	j = &fakeJson{simplejson.New()}
 	b, err := Encode(o)
 	if err != nil {
-		logger.Errorf(nil, "Failed to encode [%+v] to []byte, error: %+v", o, err)
+		logger.Errorf(nil, "Encode [%+v] to []byte failed: %+v", o, err)
 		return j
 	}
 	j, err = NewJson(b)
 	if err != nil {
-		logger.Errorf(nil, "Failed to decode [%+v] to Json, error: %+v", o, err)
+		logger.Errorf(nil, "Decode [%+v] to json failed: %+v", o, err)
 	}
 	return j
 }

@@ -62,7 +62,7 @@ func (g *GrpcServer) Serve(callback RegisterCallback, opt ...grpc.ServerOption) 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", g.Port))
 	if err != nil {
 		err = errors.WithStack(err)
-		logger.Criticalf(nil, "failed to listen: %+v", err)
+		logger.Criticalf(nil, "Net listen failed: %+v", err)
 	}
 
 	builtinOptions := []grpc.ServerOption{
@@ -122,7 +122,7 @@ func (g *GrpcServer) unaryServerLogInterceptor() grpc.UnaryServerInterceptor {
 		action := method[len(method)-1]
 		if p, ok := req.(proto.Message); ok {
 			if content, err := jsonPbMarshaller.MarshalToString(p); err != nil {
-				logger.Errorf(ctx, "Failed to marshal proto message to string [%s][%+v]", action, err)
+				logger.Errorf(ctx, "Marshal proto message to string [%s] failed: %+v", action, err)
 			} else {
 				logger.Infof(ctx, "Request received [%s] [%s]", action, content)
 			}

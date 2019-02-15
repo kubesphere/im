@@ -32,12 +32,6 @@ type Database struct {
 	*gorm.DB
 }
 
-type Options struct {
-	SqlInitDB    []string
-	SqlInitTable []string
-	SqlInitData  []string
-}
-
 func OpenDatabase(cfg *config.Config) (*Database, error) {
 	cfg = cfg.Clone()
 
@@ -57,8 +51,10 @@ func OpenDatabase(cfg *config.Config) (*Database, error) {
 		return nil, err
 	}
 
+	p.DB.SingularTable(true)
+
 	// Enable Logger, show detailed log
-	p.DB.LogMode(true)
+	p.DB.LogMode(cfg.DB.LogModeEnable)
 
 	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
 	p.DB.DB().SetMaxIdleConns(10)

@@ -33,11 +33,10 @@ import (
 )
 
 func ComparePassword(ctx context.Context, req *pb.ComparePasswordRequest) (*pb.ComparePasswordResponse, error) {
-	var user = models.User{
-		UserId: req.UserId,
-	}
-	if err := db.Global().First(&user).Error; err != nil {
-		logger.Warnf(ctx, "uid = %s, err = %+v", req.UserId, err)
+	var user = &models.User{UserId: req.UserId}
+	if err := db.Global().Table(constants.TableUser).
+		Take(user).Error; err != nil {
+		logger.Errorf(ctx, "Get user [%s] failed: %+v", req.UserId, err)
 		return nil, err
 	}
 
@@ -45,31 +44,29 @@ func ComparePassword(ctx context.Context, req *pb.ComparePasswordRequest) (*pb.C
 		[]byte(user.Password), []byte(req.GetPassword()),
 	)
 	if err != nil {
-		logger.Warnf(ctx, "password failed, md5(password): %x", md5.Sum([]byte(req.Password)))
-		logger.Warnf(ctx, "user: %v, req: %v", user, req)
+		logger.Errorf(ctx, "Compare password failed, md5(password): %x", md5.Sum([]byte(req.Password)))
 		return &pb.ComparePasswordResponse{Ok: false}, nil
 	}
 
-	// OK
 	return &pb.ComparePasswordResponse{Ok: true}, nil
 }
 
 func ModifyPassword(ctx context.Context, req *pb.ModifyPasswordRequest) (*pb.ModifyPasswordResponse, error) {
 	if req.Password == "" {
 		err := status.Errorf(codes.InvalidArgument, "empty password")
-		logger.Warnf(ctx, "%+v", err)
+		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
 
-	distributes := map[string]interface{}{
+	attributes := map[string]interface{}{
 		constants.ColumnPassword:   req.Password,
 		constants.ColumnUpdateTime: time.Now(),
 	}
 
 	if err := db.Global().Table(constants.TableUser).
-		Where("? = ?", constants.ColumnUserId, req.UserId).
-		Updates(distributes).Error; err != nil {
-		logger.Warnf(ctx, "%+v", err)
+		Where(constants.ColumnUserId+" = ?", req.UserId).
+		Updates(attributes).Error; err != nil {
+		logger.Errorf(ctx, "Modify user [%s] password failed: %+v", req.UserId, err)
 		return nil, err
 	}
 

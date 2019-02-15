@@ -55,11 +55,11 @@ func CreateGroup(ctx context.Context, req *pb.CreateGroupRequest) (*pb.CreateGro
 
 		var total int
 		db.Global().Table(constants.TableGroup).
-			Where("? in (?)", constants.ColumnGroupId, allParentGroupIds).
+			Where(constants.ColumnGroupId+" in (?)", allParentGroupIds).
 			Count(&total)
 
 		if err := db.Global().Error; err != nil {
-			logger.Warnf(ctx, "%+v", err)
+			logger.Errorf(ctx, "Get parent group ids failed: %+v", err)
 			return nil, err
 		}
 		if total != len(allParentGroupIds) {
@@ -67,14 +67,14 @@ func CreateGroup(ctx context.Context, req *pb.CreateGroupRequest) (*pb.CreateGro
 				"some groupId in allParentGroupIds (%q) do not exists",
 				group.GroupPath,
 			)
-			logger.Warnf(ctx, "%+v", err)
+			logger.Errorf(ctx, "%+v", err)
 			return nil, err
 		}
 	}
 
 	// create new record
 	if err := db.Global().Create(group).Error; err != nil {
-		logger.Warnf(ctx, "%+v, %v", err, group)
+		logger.Errorf(ctx, "Insert group failed: %+v", err)
 		return nil, err
 	}
 
@@ -87,18 +87,17 @@ func DeleteGroups(ctx context.Context, req *pb.DeleteGroupsRequest) (*pb.DeleteG
 	groupIds := req.GroupId
 	if len(groupIds) == 0 {
 		err := status.Errorf(codes.InvalidArgument, "empty group id")
-		logger.Warnf(ctx, "%+v", err)
+		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
 
 	// 1. check sub groups
 	subGroupIds, err := getAllSubGroupIds(ctx, groupIds)
 	if err != nil {
-		logger.Warnf(ctx, "%+v", err)
 		return nil, err
 	}
 	if len(subGroupIds) > 0 {
-		err := status.Errorf(codes.PermissionDenied, "still has sub groups: %v", subGroupIds)
+		err := status.Errorf(codes.PermissionDenied, "still has sub groups in group: %v", subGroupIds)
 		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
@@ -109,21 +108,21 @@ func DeleteGroups(ctx context.Context, req *pb.DeleteGroupsRequest) (*pb.DeleteG
 		return nil, err
 	}
 	if len(users) > 0 {
-		err := status.Errorf(codes.PermissionDenied, "still has users: %v", subGroupIds)
+		err := status.Errorf(codes.PermissionDenied, "still has users in group: %v", subGroupIds)
 		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
 
 	// 3. update user_group status to deleted
 	now := time.Now()
-	distributes := map[string]interface{}{
+	attributes := map[string]interface{}{
 		constants.ColumnStatusTime: now,
 		constants.ColumnUpdateTime: now,
 		constants.ColumnStatus:     constants.StatusDeleted,
 	}
 	if err := db.Global().Table(constants.TableGroup).
-		Where("? in (?)", constants.ColumnGroupId, groupIds).
-		Updates(distributes).Error; err != nil {
+		Where(constants.ColumnGroupId+" in (?)", groupIds).
+		Updates(attributes).Error; err != nil {
 		logger.Errorf(ctx, "Update group status failed: %+v", err)
 		return nil, err
 	}
@@ -134,12 +133,13 @@ func DeleteGroups(ctx context.Context, req *pb.DeleteGroupsRequest) (*pb.DeleteG
 }
 
 func ModifyGroup(ctx context.Context, req *pb.ModifyGroupRequest) (*pb.ModifyGroupResponse, error) {
-	group, err := GetGroup(ctx, req.GroupId)
+	groupId := req.GroupId
+	group, err := GetGroup(ctx, groupId)
 	if err != nil {
-		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
 
+	attributes := make(map[string]interface{})
 	if req.ParentGroupId != "" && req.ParentGroupId != group.ParentGroupId {
 		group.ParentGroupId = req.ParentGroupId
 		parentGroupPath, err := GetParentGroupPath(ctx, group.ParentGroupId)
@@ -147,27 +147,30 @@ func ModifyGroup(ctx context.Context, req *pb.ModifyGroupRequest) (*pb.ModifyGro
 			return nil, err
 		}
 		groupPath := models.GetGroupPath(parentGroupPath, group.GroupId)
-		group.GroupPath = groupPath
-		group.GroupPathLevel = strings.Count(strutil.SimplifyString(groupPath), constants.GroupPathSep) + 1
+		attributes[constants.ColumnParentGroupId] = req.ParentGroupId
+		attributes[constants.ColumnGroupPath] = groupPath
+		attributes[constants.ColumnGroupPathLevel] = strings.Count(strutil.SimplifyString(groupPath), constants.GroupPathSep) + 1
 	}
 	if req.GroupName != "" {
-		group.GroupName = req.GroupName
+		attributes[constants.ColumnGroupName] = req.GroupName
 	}
 	if req.Description != "" {
-		group.Description = req.Description
+		attributes[constants.ColumnDescription] = req.Description
 	}
 	if len(req.Extra) > 0 {
-		group.Extra = strutil.NewString(jsonutil.ToString(req.Extra))
+		attributes[constants.ColumnExtra] = strutil.NewString(jsonutil.ToString(req.Extra))
 	}
-	group.UpdateTime = time.Now()
+	attributes[constants.ColumnUpdateTime] = time.Now()
 
-	if err := db.Global().Model(group).Updates(group).Error; err != nil {
-		logger.Errorf(ctx, "%+v", err)
+	if err := db.Global().Table(constants.TableGroup).
+		Updates(attributes).
+		Where(constants.ColumnGroupId+" = ?", groupId).Error; err != nil {
+		logger.Errorf(ctx, "Update group [%s] failed: %+v", groupId, err)
 		return nil, err
 	}
 
 	return &pb.ModifyGroupResponse{
-		GroupId: group.GroupId,
+		GroupId: groupId,
 	}, nil
 }
 
@@ -177,7 +180,7 @@ func GetParentGroupPath(ctx context.Context, parentGroupId string) (string, erro
 		parentGroup, err := GetGroup(ctx, parentGroupId)
 		if err != nil {
 			err = status.Errorf(codes.InvalidArgument, "get parent group failed: %v", err)
-			logger.Warnf(ctx, "%+v", err)
+			logger.Errorf(ctx, "%+v", err)
 			return parentGroupPath, err
 		}
 		parentGroupPath = parentGroup.GroupPath
@@ -187,8 +190,8 @@ func GetParentGroupPath(ctx context.Context, parentGroupId string) (string, erro
 
 func GetGroup(ctx context.Context, groupId string) (*models.Group, error) {
 	var group = &models.Group{GroupId: groupId}
-	if err := db.Global().Model(models.Group{}).Take(group).Error; err != nil {
-		logger.Warnf(ctx, "%+v", err)
+	if err := db.Global().Table(constants.TableGroup).Take(group).Error; err != nil {
+		logger.Errorf(ctx, "Get group [%s] failed: %+v", groupId, err)
 		return nil, err
 	}
 
@@ -223,22 +226,20 @@ func ListGroups(ctx context.Context, req *pb.ListGroupsRequest) (*pb.ListGroupsR
 	var groups []*models.Group
 	var count int
 
-	if err := db.Global().
+	if err := db.GetChain(db.Global().Table(constants.TableGroup)).
 		AddQueryOrderDir(req, constants.ColumnCreateTime).
 		BuildFilterConditions(req, constants.TableGroup).
-		Table(constants.TableGroup).
 		Offset(offset).
 		Limit(limit).
 		Find(&groups).Error; err != nil {
-		logger.Errorf(ctx, "%+v", err)
+		logger.Errorf(ctx, "List group failed: %+v", err)
 		return nil, err
 	}
 
-	if err := db.Global().
+	if err := db.GetChain(db.Global().Table(constants.TableGroup)).
 		BuildFilterConditions(req, constants.TableGroup).
-		Table(constants.TableGroup).
 		Count(&count).Error; err != nil {
-		logger.Errorf(ctx, "%+v", err)
+		logger.Errorf(ctx, "List group count failed: %+v", err)
 		return nil, err
 	}
 
@@ -256,7 +257,7 @@ func ListGroups(ctx context.Context, req *pb.ListGroupsRequest) (*pb.ListGroupsR
 func ListGroupsWithUser(ctx context.Context, req *pb.ListGroupsRequest) (*pb.ListGroupsWithUserResponse, error) {
 	response, err := ListGroups(ctx, req)
 	if err != nil {
-		logger.Errorf(ctx, "Failed to list groups: %+v", err)
+		logger.Errorf(ctx, "List groups failed: %+v", err)
 		return nil, err
 	}
 
@@ -264,7 +265,6 @@ func ListGroupsWithUser(ctx context.Context, req *pb.ListGroupsRequest) (*pb.Lis
 	for _, pbGroup := range response.GroupSet {
 		users, err := GetUsersByGroupIds(ctx, []string{pbGroup.GroupId})
 		if err != nil {
-			logger.Errorf(ctx, "Failed to get user [%s] users: %+v", pbGroup.GroupId, err)
 			return nil, err
 		}
 		var pbUsers []*pb.User
@@ -284,15 +284,15 @@ func ListGroupsWithUser(ctx context.Context, req *pb.ListGroupsRequest) (*pb.Lis
 }
 
 func getAllSubGroupIds(ctx context.Context, groupIds []string) ([]string, error) {
-	var groups []models.Group
+	var groups []*models.Group
 
-	query := db.Global().Where("1=0")
+	tx := db.Global().Table(constants.TableGroup)
 	for _, groupId := range groupIds {
 		likeGroupId := "%" + groupId + "%"
-		query.Or("group_path LIKE ?", likeGroupId)
+		tx = tx.Or(constants.ColumnGroupPath+" LIKE ?", likeGroupId)
 	}
-	if err := query.Find(groups).Error; err != nil {
-		logger.Warnf(ctx, "%+group", err)
+	if err := tx.Find(&groups).Error; err != nil {
+		logger.Errorf(ctx, "Get all sub groups failed: %+v", err)
 		return nil, err
 	}
 
