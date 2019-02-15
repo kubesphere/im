@@ -55,7 +55,9 @@ func NewGrpcServer(serviceName string, port int) *GrpcServer {
 }
 
 func (g *GrpcServer) Serve(callback RegisterCallback, opt ...grpc.ServerOption) {
-	logger.Infof(nil, "Release version: %s", version.GetVersionString())
+	version.PrintVersionInfo(func(s string, i ...interface{}) {
+		logger.Infof(nil, s, i)
+	})
 	logger.Infof(nil, "Service [%s] start listen at port [%d]", g.ServiceName, g.Port)
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", g.Port))
 	if err != nil {

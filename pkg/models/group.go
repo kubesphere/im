@@ -35,7 +35,7 @@ type Group struct {
 	GroupPath     string `gorm:"type:varchar(255);not null;unique"`
 	GroupName     string `gorm:"type:varchar(50);not null"`
 	Description   string `gorm:"type:varchar(1000);not null"`
-	Status        string `gorm:"type:varchar(10);not null"`
+	Status        string `gorm:"type:varchar(50);not null"`
 	CreateTime    time.Time
 	UpdateTime    time.Time
 	StatusTime    time.Time

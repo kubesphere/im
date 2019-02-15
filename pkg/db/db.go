@@ -17,6 +17,8 @@ limitations under the License.
 package db
 
 import (
+	"time"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -55,8 +57,17 @@ func OpenDatabase(cfg *config.Config) (*Database, error) {
 		return nil, err
 	}
 
-	p.DB.SingularTable(true)
-	p.DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8")
+	// Enable Logger, show detailed log
+	p.DB.LogMode(true)
+
+	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
+	p.DB.DB().SetMaxIdleConns(10)
+
+	// SetMaxOpenConns sets the maximum number of open connections to the database.
+	p.DB.DB().SetMaxOpenConns(100)
+
+	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+	p.DB.DB().SetConnMaxLifetime(time.Hour)
 
 	return p, nil
 }
