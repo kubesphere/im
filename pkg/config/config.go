@@ -43,12 +43,13 @@ type Config struct {
 }
 
 type DBConfig struct {
-	Type     string `default:"mysql"`
-	Host     string `default:"im-db"`
-	Port     int    `default:"3306"`
-	User     string `default:"root"`
-	Password string `default:"password"`
-	Database string `default:"im"`
+	Type          string `default:"mysql"`
+	Host          string `default:"im-db"`
+	Port          int    `default:"3306"`
+	User          string `default:"root"`
+	Password      string `default:"password"`
+	Database      string `default:"im"`
+	LogModeEnable bool   `default:"false"`
 }
 
 func (m *Config) Clone() *Config {

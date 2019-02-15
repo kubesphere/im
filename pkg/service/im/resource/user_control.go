@@ -37,7 +37,7 @@ func CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserR
 
 	// create new record
 	if err := db.Global().Create(user).Error; err != nil {
-		logger.Warnf(ctx, "%+v, %v", err, user)
+		logger.Errorf(ctx, "Insert user failed: %+v", err)
 		return nil, err
 	}
 
@@ -50,38 +50,36 @@ func DeleteUsers(ctx context.Context, req *pb.DeleteUsersRequest) (*pb.DeleteUse
 	userIds := req.UserId
 	if len(userIds) == 0 {
 		err := status.Errorf(codes.InvalidArgument, "empty user id")
-		logger.Warnf(ctx, "%+v", err)
+		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
 
 	tx := db.Global().Begin()
 	{
-		tx.Delete(models.UserGroupBinding{}, `? in (?)`, constants.ColumnUserId, userIds)
+		tx.Delete(models.UserGroupBinding{}, constants.ColumnUserId+" in (?)", userIds)
 		if err := tx.Error; err != nil {
 			tx.Rollback()
+			logger.Errorf(ctx, "Delete user group binding failed: %+v", err)
 			return nil, err
 		}
 
 		now := time.Now()
-		distributes := map[string]interface{}{
+		attributes := map[string]interface{}{
 			constants.ColumnStatusTime: now,
 			constants.ColumnUpdateTime: now,
 			constants.ColumnStatus:     constants.StatusDeleted,
 		}
 		if err := tx.Table(constants.TableUser).
-			Where("? in (?)", constants.ColumnUserId, userIds).
-			Updates(distributes).Error; err != nil {
-			logger.Errorf(ctx, "Update user status failed: %+v", err)
-			return nil, err
-		}
-		if err := tx.Error; err != nil {
+			Where(constants.ColumnUserId+" in (?)", userIds).
+			Updates(attributes).Error; err != nil {
 			tx.Rollback()
+			logger.Errorf(ctx, "Update user status failed: %+v", err)
 			return nil, err
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		logger.Warnf(ctx, "%+v", err)
+		logger.Errorf(ctx, "Delete user failed: %+v", err)
 		return nil, err
 	}
 
@@ -91,48 +89,50 @@ func DeleteUsers(ctx context.Context, req *pb.DeleteUsersRequest) (*pb.DeleteUse
 }
 
 func ModifyUser(ctx context.Context, req *pb.ModifyUserRequest) (*pb.ModifyUserResponse, error) {
-	user, err := GetUser(ctx, req.UserId)
+	userId := req.UserId
+	_, err := GetUser(ctx, userId)
 	if err != nil {
-		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
 
+	attributes := make(map[string]interface{})
 	if req.Username != "" {
-		user.Username = req.Username
+		attributes[constants.ColumnUsername] = req.Username
 	}
 	if req.Description != "" {
-		user.Description = req.Description
+		attributes[constants.ColumnDescription] = req.Description
 	}
 	if req.Email != "" {
-		user.Email = strutil.SimplifyString(req.Email)
+		attributes[constants.ColumnEmail] = strutil.SimplifyString(req.Email)
 	}
 	if req.PhoneNumber != "" {
-		user.PhoneNumber = strutil.SimplifyString(req.PhoneNumber)
+		attributes[constants.ColumnPhoneNumber] = strutil.SimplifyString(req.PhoneNumber)
 	}
 	if len(req.Extra) > 0 {
-		user.Extra = strutil.NewString(jsonutil.ToString(req.Extra))
+		attributes[constants.ColumnExtra] = strutil.NewString(jsonutil.ToString(req.Extra))
 	}
-	user.UpdateTime = time.Now()
+	attributes[constants.ColumnUpdateTime] = time.Now()
 
-	if err := db.Global().Model(user).Updates(user).Error; err != nil {
-		logger.Warnf(ctx, "%+v", err)
+	if err := db.Global().Table(constants.TableUser).
+		Updates(attributes).
+		Where(constants.ColumnUserId+" = ?", userId).Error; err != nil {
+		logger.Errorf(ctx, "Update user [%s] failed: %+v", userId, err)
 		return nil, err
 	}
 
 	return &pb.ModifyUserResponse{
-		UserId: user.UserId,
+		UserId: userId,
 	}, err
 }
 
 func GetUser(ctx context.Context, userId string) (*models.User, error) {
 	var user = &models.User{UserId: userId}
-	if err := db.Global().Model(models.User{}).Take(user).Error; err != nil {
-		logger.Warnf(ctx, "%+v", err)
+	if err := db.Global().Table(constants.TableUser).
+		Take(user).Error; err != nil {
+		logger.Errorf(ctx, "Get user [%s] failed: %+v", userId, err)
 		return nil, err
 	}
 
-	// ignore Password
-	user.Password = ""
 	return user, nil
 }
 
@@ -166,7 +166,6 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 	if len(req.GroupId) > 0 {
 		userIds, err := GetUserIdsByGroupIds(ctx, req.GroupId)
 		if err != nil {
-			logger.Errorf(ctx, "%+v", err)
 			return nil, err
 		}
 
@@ -192,22 +191,20 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 	var users []*models.User
 	var count int
 
-	if err := db.Global().
+	if err := db.GetChain(db.Global().Table(constants.TableUser)).
 		AddQueryOrderDir(req, constants.ColumnCreateTime).
 		BuildFilterConditions(req, constants.TableUser).
-		Table(constants.TableUser).
 		Offset(offset).
 		Limit(limit).
 		Find(&users).Error; err != nil {
-		logger.Errorf(ctx, "%+v", err)
+		logger.Errorf(ctx, "List users failed: %+v", err)
 		return nil, err
 	}
 
-	if err := db.Global().
+	if err := db.GetChain(db.Global().Table(constants.TableUser)).
 		BuildFilterConditions(req, constants.TableUser).
-		Table(constants.TableUser).
 		Count(&count).Error; err != nil {
-		logger.Errorf(ctx, "%+v", err)
+		logger.Errorf(ctx, "List users count failed: %+v", err)
 		return nil, err
 	}
 
@@ -225,7 +222,7 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 func ListUsersWithGroup(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersWithGroupResponse, error) {
 	response, err := ListUsers(ctx, req)
 	if err != nil {
-		logger.Errorf(ctx, "Failed to list users: %+v", err)
+		logger.Errorf(ctx, "List users failed: %+v", err)
 		return nil, err
 	}
 
@@ -233,7 +230,7 @@ func ListUsersWithGroup(ctx context.Context, req *pb.ListUsersRequest) (*pb.List
 	for _, pbUser := range response.UserSet {
 		groups, err := GetGroupsByUserIds(ctx, []string{pbUser.UserId})
 		if err != nil {
-			logger.Errorf(ctx, "Failed to get user [%s] groups: %+v", pbUser.UserId, err)
+			logger.Errorf(ctx, "Get user [%s] groups failed: %+v", pbUser.UserId, err)
 			return nil, err
 		}
 		var pbGroups []*pb.Group

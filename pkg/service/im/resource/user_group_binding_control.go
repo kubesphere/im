@@ -29,13 +29,14 @@ import (
 	"kubesphere.io/im/pkg/pb"
 )
 
-func GetUserGroupBindings(ctx context.Context, groupId, userIds []string) ([]*models.UserGroupBinding, error) {
+func GetUserGroupBindings(ctx context.Context, groupIds, userIds []string) ([]*models.UserGroupBinding, error) {
 	var userGroupBindings []*models.UserGroupBinding
-	if err := db.Global().Model(models.User{}).
-		Where("? in (?) and ? in (?)", constants.ColumnGroupId, groupId, constants.ColumnUserId, userIds).
+	if err := db.Global().Table(constants.TableUserGroupBinding).
+		Where(constants.ColumnGroupId+" in (?)", groupIds).
+		Where(constants.ColumnUserId+" in (?)", userIds).
 		Find(&userGroupBindings).
 		Error; err != nil {
-		logger.Warnf(ctx, "%+v", err)
+		logger.Errorf(ctx, "Get user group binding failed: %+v", err)
 		return nil, err
 	}
 
@@ -45,14 +46,13 @@ func GetUserGroupBindings(ctx context.Context, groupId, userIds []string) ([]*mo
 func JoinGroup(ctx context.Context, req *pb.JoinGroupRequest) (*pb.JoinGroupResponse, error) {
 	if len(req.UserId) == 0 || len(req.GroupId) == 0 {
 		err := status.Errorf(codes.InvalidArgument, "empty user id or group id")
-		logger.Warnf(ctx, "%+v", err)
+		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
 
 	// check user in group
 	userGroupBindings, err := GetUserGroupBindings(ctx, req.GroupId, req.UserId)
 	if err != nil {
-		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
 	if len(userGroupBindings) != 0 {
@@ -67,13 +67,14 @@ func JoinGroup(ctx context.Context, req *pb.JoinGroupRequest) (*pb.JoinGroupResp
 			for _, userId := range req.UserId {
 				if err := tx.Create(models.NewUserGroupBinding(groupId, userId)).Error; err != nil {
 					tx.Rollback()
+					logger.Errorf(ctx, "Insert user group binding failed: %+v", err)
 					return nil, err
 				}
 			}
 		}
 	}
 	if err := tx.Commit().Error; err != nil {
-		logger.Warnf(ctx, "%+v", err)
+		logger.Errorf(ctx, "Batch insert user group binding failed: %+v", err)
 		return nil, err
 	}
 
@@ -85,7 +86,7 @@ func JoinGroup(ctx context.Context, req *pb.JoinGroupRequest) (*pb.JoinGroupResp
 
 func LeaveGroup(ctx context.Context, req *pb.LeaveGroupRequest) (*pb.LeaveGroupResponse, error) {
 	if len(req.UserId) == 0 || len(req.GroupId) == 0 {
-		err := status.Errorf(codes.InvalidArgument, "empty user id or group id")
+		err := status.Errorf(codes.InvalidArgument, "empty user or group")
 		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
@@ -93,7 +94,6 @@ func LeaveGroup(ctx context.Context, req *pb.LeaveGroupRequest) (*pb.LeaveGroupR
 	// check user in group
 	userGroupBindings, err := GetUserGroupBindings(ctx, req.GroupId, req.UserId)
 	if err != nil {
-		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
 	if len(userGroupBindings) != len(req.UserId)*len(req.GroupId) {
@@ -102,11 +102,11 @@ func LeaveGroup(ctx context.Context, req *pb.LeaveGroupRequest) (*pb.LeaveGroupR
 		return nil, err
 	}
 
-	if err := db.Global().Delete(models.UserGroupBinding{},
-		`user_id in (?) and group_id in (?)`,
-		req.UserId, req.GroupId,
-	).Error; err != nil {
-		logger.Errorf(ctx, "%+v", err)
+	if err := db.Global().
+		Where(constants.ColumnGroupId+" in (?)", req.GroupId).
+		Where(constants.ColumnUserId+" in (?)", req.UserId).
+		Delete(models.UserGroupBinding{}).Error; err != nil {
+		logger.Errorf(ctx, "Delete user group binding failed: %+v", err)
 		return nil, err
 	}
 
@@ -127,7 +127,7 @@ func GetGroupsByUserIds(ctx context.Context, userIds []string) ([]*models.Group,
 	`
 	var groups []*models.Group
 	if err := db.Global().Raw(query, userIds).Scan(&groups).Error; err != nil {
-		logger.Warnf(ctx, "%+v", err)
+		logger.Errorf(ctx, "Get groups by user id failed: %+v", err)
 		return nil, err
 	}
 
@@ -144,8 +144,8 @@ func GetUsersByGroupIds(ctx context.Context, groupIds []string) ([]*models.User,
  			user_group.group_id in (?)
 	`
 	var users []*models.User
-	if err := db.Global().Raw(query, groupIds).Scan(users).Error; err != nil {
-		logger.Errorf(ctx, "%+v", err)
+	if err := db.Global().Raw(query, groupIds).Scan(&users).Error; err != nil {
+		logger.Errorf(ctx, "Get users by group id failed: %+v", err)
 		return nil, err
 	}
 
@@ -155,10 +155,10 @@ func GetUsersByGroupIds(ctx context.Context, groupIds []string) ([]*models.User,
 func GetUserIdsByGroupIds(ctx context.Context, groupIds []string) ([]string, error) {
 	rows, err := db.Global().Table(constants.TableUserGroupBinding).
 		Select(constants.ColumnUserId).
-		Where("? in (?)", constants.ColumnGroupId, groupIds).
+		Where(constants.ColumnGroupId+" in (?)", groupIds).
 		Rows()
 	if err != nil {
-		logger.Errorf(ctx, "%+v", err)
+		logger.Errorf(ctx, "Get user ids by group id failed: %+v", err)
 		return nil, err
 	}
 	var userIds []string

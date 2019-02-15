@@ -73,11 +73,11 @@ type Request interface {
 }
 type RequestWithSortKey interface {
 	Request
-	GetSortKey() *wrappers.StringValue
+	GetSortKey() string
 }
 type RequestWithReverse interface {
 	RequestWithSortKey
-	GetReverse() *wrappers.BoolValue
+	GetReverse() bool
 }
 
 const (
@@ -85,41 +85,23 @@ const (
 	SearchWordColumnName = "search_word"
 )
 
-func (p *Database) getSearchFilter(tableName string, value interface{}, exclude ...string) {
-	if v, ok := value.(string); ok {
-		for _, column := range constants.SearchColumns[tableName] {
-			if strutil.Contains(exclude, column) {
-				continue
-			}
-			// if column suffix is _id, must exact match
-			if strings.HasSuffix(column, "_id") {
-				p.Or("? = ?", column, v)
-			} else {
-				p.Or("? LIKE ?", column, "%"+strutil.SimplifyString(v)+"%")
-			}
-		}
-	} else if value != nil {
-		logger.Warnf(nil, "search_word [%+v] is not string", value)
-	}
-}
-
 func getReqValue(param interface{}) interface{} {
 	switch value := param.(type) {
 	case string:
 		if value == "" {
 			return nil
 		}
-		return value
+		return []string{value}
 	case *wrappers.StringValue:
 		if value == nil {
 			return nil
 		}
-		return value.GetValue()
+		return []string{value.GetValue()}
 	case *wrappers.Int32Value:
 		if value == nil {
 			return nil
 		}
-		return value.GetValue()
+		return []int32{value.GetValue()}
 	case []string:
 		var values []string
 		for _, v := range value {
@@ -133,11 +115,6 @@ func getReqValue(param interface{}) interface{} {
 		return values
 	}
 	return nil
-}
-
-func (p *Database) BuildFilterConditions(req Request, tableName string, exclude ...string) *Database {
-	p.buildFilterConditions(req, tableName, exclude...)
-	return p
 }
 
 func GetDisplayColumns(displayColumns []string, wholeColumns []string) []string {
@@ -165,7 +142,45 @@ func getFieldName(field *structs.Field) string {
 	return t[0]
 }
 
-func (p *Database) buildFilterConditions(req Request, tableName string, exclude ...string) {
+type Chain struct {
+	*gorm.DB
+}
+
+func GetChain(tx *gorm.DB) *Chain {
+	return &Chain{
+		tx,
+	}
+}
+
+func (c *Chain) BuildFilterConditions(req Request, tableName string, exclude ...string) *Chain {
+	return c.buildFilterConditions(req, tableName, exclude...)
+}
+
+func (c *Chain) getSearchFilter(tableName string, value interface{}, exclude ...string) {
+	var conditions []string
+	if vs, ok := value.([]string); ok {
+		for _, v := range vs {
+			for _, column := range constants.SearchColumns[tableName] {
+				if strutil.Contains(exclude, column) {
+					continue
+				}
+				// if column suffix is _id, must exact match
+				if strings.HasSuffix(column, "_id") {
+					conditions = append(conditions, column+" = '"+v+"'")
+				} else {
+					likeV := "%" + strutil.SimplifyString(v) + "%"
+					conditions = append(conditions, column+" LIKE '"+likeV+"'")
+				}
+			}
+		}
+	} else if value != nil {
+		logger.Warnf(nil, "search_word [%+v] is not string", value)
+	}
+	condition := strings.Join(conditions, " OR ")
+	c.DB = c.DB.Where(condition)
+}
+
+func (c *Chain) buildFilterConditions(req Request, tableName string, exclude ...string) *Chain {
 	for _, field := range structs.Fields(req) {
 		column := getFieldName(field)
 		param := field.Value()
@@ -174,30 +189,30 @@ func (p *Database) buildFilterConditions(req Request, tableName string, exclude 
 			value := getReqValue(param)
 			if value != nil {
 				key := column
-				p.Or("? = ?", key, value)
+				c.DB = c.Where(key+" in (?)", value)
 			}
 		}
 		if column == SearchWordColumnName && strutil.Contains(constants.SearchWordColumnTable, tableName) {
 			value := getReqValue(param)
-			p.getSearchFilter(tableName, value, exclude...)
+			c.getSearchFilter(tableName, value, exclude...)
 		}
 	}
+	return c
 }
 
-func (p *Database) AddQueryOrderDir(req Request, defaultColumn string) *Database {
-	isDesc := true
+func (c *Chain) AddQueryOrderDir(req Request, defaultColumn string) *Chain {
+	order := "DESC"
 	if r, ok := req.(RequestWithReverse); ok {
-		reverse := r.GetReverse()
-		if reverse != nil {
-			isDesc = !reverse.GetValue()
+		if r.GetReverse() {
+			order = "ASC"
 		}
 	}
 	if r, ok := req.(RequestWithSortKey); ok {
 		s := r.GetSortKey()
-		if s != nil {
-			defaultColumn = s.GetValue()
+		if s != "" {
+			defaultColumn = s
 		}
 	}
-	p.Order(gorm.Expr("? = ? DESC", defaultColumn, "first"), isDesc)
-	return p
+	c.DB = c.Order(defaultColumn + " " + order)
+	return c
 }
