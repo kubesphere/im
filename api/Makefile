@@ -31,7 +31,7 @@ generate: $(PROTO_FILES) Makefile
 	# need to exec chown finally
 	chown -R $${USER_ID}:$${GROUP_ID} ../pkg
 	# format generated files
-	goimports -l -w -e -local=openpitrix ../pkg/pb
+	goimports -l -w -e -local=kubesphere ../pkg/pb
 
 clean:
 	rm -rf $(GOPATH)/src/kubesphere.io/im/pkg/pb
