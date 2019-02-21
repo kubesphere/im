@@ -29,7 +29,7 @@ import (
 	"kubesphere.io/im/pkg/pb"
 )
 
-func GetUserGroupBindings(ctx context.Context, groupIds, userIds []string) ([]*models.UserGroupBinding, error) {
+func GetUserGroupBindings(ctx context.Context, userIds, groupIds []string) ([]*models.UserGroupBinding, error) {
 	var userGroupBindings []*models.UserGroupBinding
 	if err := db.Global().Table(constants.TableUserGroupBinding).
 		Where(constants.ColumnGroupId+" in (?)", groupIds).
@@ -51,7 +51,7 @@ func JoinGroup(ctx context.Context, req *pb.JoinGroupRequest) (*pb.JoinGroupResp
 	}
 
 	// check user in group
-	userGroupBindings, err := GetUserGroupBindings(ctx, req.GroupId, req.UserId)
+	userGroupBindings, err := GetUserGroupBindings(ctx, req.UserId, req.GroupId)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func JoinGroup(ctx context.Context, req *pb.JoinGroupRequest) (*pb.JoinGroupResp
 	{
 		for _, groupId := range req.GroupId {
 			for _, userId := range req.UserId {
-				if err := tx.Create(models.NewUserGroupBinding(groupId, userId)).Error; err != nil {
+				if err := tx.Create(models.NewUserGroupBinding(userId, groupId)).Error; err != nil {
 					tx.Rollback()
 					logger.Errorf(ctx, "Insert user group binding failed: %+v", err)
 					return nil, err
@@ -86,13 +86,13 @@ func JoinGroup(ctx context.Context, req *pb.JoinGroupRequest) (*pb.JoinGroupResp
 
 func LeaveGroup(ctx context.Context, req *pb.LeaveGroupRequest) (*pb.LeaveGroupResponse, error) {
 	if len(req.UserId) == 0 || len(req.GroupId) == 0 {
-		err := status.Errorf(codes.InvalidArgument, "empty user or group")
+		err := status.Errorf(codes.InvalidArgument, "empty user id or group id")
 		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
 
 	// check user in group
-	userGroupBindings, err := GetUserGroupBindings(ctx, req.GroupId, req.UserId)
+	userGroupBindings, err := GetUserGroupBindings(ctx, req.UserId, req.GroupId)
 	if err != nil {
 		return nil, err
 	}
@@ -119,11 +119,10 @@ func LeaveGroup(ctx context.Context, req *pb.LeaveGroupRequest) (*pb.LeaveGroupR
 func GetGroupsByUserIds(ctx context.Context, userIds []string) ([]*models.Group, error) {
 	const query = `
 		select user_group.* from
-			user, user_group, user_group_binding
+			user_group, user_group_binding
 		where
-			user_group_binding.user_id=user.user_id and
 			user_group_binding.group_id=user_group.group_id and
-			user.user_id in (?)
+			user_group_binding.user_id in (?)
 	`
 	var groups []*models.Group
 	if err := db.Global().Raw(query, userIds).Scan(&groups).Error; err != nil {
@@ -137,11 +136,10 @@ func GetGroupsByUserIds(ctx context.Context, userIds []string) ([]*models.Group,
 func GetUsersByGroupIds(ctx context.Context, groupIds []string) ([]*models.User, error) {
 	const query = `
 		select user.* from
-			user, user_group, user_group_binding
+			user, user_group_binding
 		where
 			user_group_binding.user_id=user.user_id and
-			user_group_binding.group_id=user_group.group_id and
- 			user_group.group_id in (?)
+ 			user_group_binding.group_id in (?)
 	`
 	var users []*models.User
 	if err := db.Global().Raw(query, groupIds).Scan(&users).Error; err != nil {

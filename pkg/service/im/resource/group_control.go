@@ -97,7 +97,7 @@ func DeleteGroups(ctx context.Context, req *pb.DeleteGroupsRequest) (*pb.DeleteG
 		return nil, err
 	}
 	if len(subGroupIds) > 0 {
-		err := status.Errorf(codes.PermissionDenied, "still has sub groups in group: %v", subGroupIds)
+		err := status.Errorf(codes.PermissionDenied, "there are still sub groups in group: %v", subGroupIds)
 		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func DeleteGroups(ctx context.Context, req *pb.DeleteGroupsRequest) (*pb.DeleteG
 		return nil, err
 	}
 	if len(users) > 0 {
-		err := status.Errorf(codes.PermissionDenied, "still has users in group: %v", subGroupIds)
+		err := status.Errorf(codes.PermissionDenied, "there are still users in group: %v", subGroupIds)
 		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
@@ -163,8 +163,8 @@ func ModifyGroup(ctx context.Context, req *pb.ModifyGroupRequest) (*pb.ModifyGro
 	attributes[constants.ColumnUpdateTime] = time.Now()
 
 	if err := db.Global().Table(constants.TableGroup).
-		Updates(attributes).
-		Where(constants.ColumnGroupId+" = ?", groupId).Error; err != nil {
+		Where(constants.ColumnGroupId+" = ?", groupId).
+		Updates(attributes).Error; err != nil {
 		logger.Errorf(ctx, "Update group [%s] failed: %+v", groupId, err)
 		return nil, err
 	}

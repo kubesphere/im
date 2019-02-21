@@ -25,7 +25,8 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 
 RUN mkdir -p /kubesphere_bin
-RUN go build -v -a -installsuffix cgo -ldflags '-w' -o /kubesphere_bin/im cmd/im/main.go
+RUN go generate kubesphere.io/im/pkg/version && \
+	GOBIN=/kubesphere_bin go install -ldflags '-w -s' -tags netgo kubesphere.io/im/cmd/...
 
 FROM alpine:3.7
 COPY --from=builder /kubesphere_bin/im /usr/local/bin/

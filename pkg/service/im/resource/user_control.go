@@ -114,8 +114,8 @@ func ModifyUser(ctx context.Context, req *pb.ModifyUserRequest) (*pb.ModifyUserR
 	attributes[constants.ColumnUpdateTime] = time.Now()
 
 	if err := db.Global().Table(constants.TableUser).
-		Updates(attributes).
-		Where(constants.ColumnUserId+" = ?", userId).Error; err != nil {
+		Where(constants.ColumnUserId+" = ?", userId).
+		Updates(attributes).Error; err != nil {
 		logger.Errorf(ctx, "Update user [%s] failed: %+v", userId, err)
 		return nil, err
 	}
