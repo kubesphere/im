@@ -30,7 +30,7 @@ type UserGroupBinding struct {
 	CreateTime time.Time `gorm:"default CURRENT_TIMESTAMP"`
 }
 
-func NewUserGroupBinding(groupId, userId string) *UserGroupBinding {
+func NewUserGroupBinding(userId, groupId string) *UserGroupBinding {
 	return &UserGroupBinding{
 		Id:         idutil.GetUuid(constants.PrefixUserGroupBindingId),
 		GroupId:    groupId,
