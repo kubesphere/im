@@ -118,10 +118,10 @@ func LeaveGroup(ctx context.Context, req *pb.LeaveGroupRequest) (*pb.LeaveGroupR
 
 func GetGroupsByUserIds(ctx context.Context, userIds []string) ([]*models.Group, error) {
 	const query = `
-		select user_group.* from
-			user_group, user_group_binding
+		select group.* from
+			group, user_group_binding
 		where
-			user_group_binding.group_id=user_group.group_id and
+			user_group_binding.group_id=group.group_id and
 			user_group_binding.user_id in (?)
 	`
 	var groups []*models.Group

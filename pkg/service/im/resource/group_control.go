@@ -113,7 +113,7 @@ func DeleteGroups(ctx context.Context, req *pb.DeleteGroupsRequest) (*pb.DeleteG
 		return nil, err
 	}
 
-	// 3. update user_group status to deleted
+	// 3. update group status to deleted
 	now := time.Now()
 	attributes := map[string]interface{}{
 		constants.ColumnStatusTime: now,
