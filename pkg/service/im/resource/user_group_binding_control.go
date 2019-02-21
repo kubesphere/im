@@ -117,13 +117,11 @@ func LeaveGroup(ctx context.Context, req *pb.LeaveGroupRequest) (*pb.LeaveGroupR
 }
 
 func GetGroupsByUserIds(ctx context.Context, userIds []string) ([]*models.Group, error) {
-	const query = `
-		select group.* from
-			group, user_group_binding
-		where
-			user_group_binding.group_id=group.group_id and
-			user_group_binding.user_id in (?)
-	`
+	const query = "select `group`.* from " +
+		"`group`,`user_group_binding` where " +
+		"`user_group_binding`.group_id=`group`.group_id and " +
+		"`user_group_binding`.user_id in (?)"
+
 	var groups []*models.Group
 	if err := db.Global().Raw(query, userIds).Scan(&groups).Error; err != nil {
 		logger.Errorf(ctx, "Get groups by user id failed: %+v", err)
