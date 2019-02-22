@@ -220,7 +220,7 @@ func ListGroups(ctx context.Context, req *pb.ListGroupsRequest) (*pb.ListGroupsR
 	req.GroupName = strutil.SimplifyStringList(req.GroupName)
 	req.Status = strutil.SimplifyStringList(req.Status)
 
-	limit := db.GetLimitFromRequest(req.Limit)
+	limit := db.GetLimitFromRequest(req)
 	offset := db.GetOffsetFromRequest(req)
 
 	var groups []*models.Group
