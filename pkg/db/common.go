@@ -29,6 +29,19 @@ import (
 	"kubesphere.io/im/pkg/util/strutil"
 )
 
+type RequestHadOffset interface {
+	GetOffset() uint32
+}
+
+type RequestHadLimit interface {
+	GetLimit() uint32
+}
+
+const (
+	DefaultOffset = uint32(0)
+	DefaultLimit  = uint32(20)
+)
+
 const (
 	DefaultSelectLimit = 200
 )
@@ -48,6 +61,22 @@ func GetOffset(n uint32) uint32 {
 		n = 0
 	}
 	return n
+}
+
+func GetOffsetFromRequest(req RequestHadOffset) uint32 {
+	n := req.GetOffset()
+	if n == 0 {
+		return DefaultOffset
+	}
+	return GetOffset(n)
+}
+
+func GetLimitFromRequest(req RequestHadLimit) uint32 {
+	n := req.GetLimit()
+	if n == 0 {
+		return DefaultLimit
+	}
+	return GetLimit(n)
 }
 
 var global *Database

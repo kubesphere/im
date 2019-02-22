@@ -159,8 +159,8 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 	req.PhoneNumber = strutil.SimplifyStringList(req.PhoneNumber)
 	req.Status = strutil.SimplifyStringList(req.Status)
 
-	limit := db.GetLimit(req.Limit)
-	offset := db.GetOffset(req.Offset)
+	limit := db.GetLimitFromRequest(req)
+	offset := db.GetOffsetFromRequest(req)
 
 	// 1. get group users
 	if len(req.GroupId) > 0 {
