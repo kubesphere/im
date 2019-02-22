@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+	"golang.org/x/crypto/bcrypt"
 
 	"kubesphere.io/im/pkg/constants"
 	"kubesphere.io/im/pkg/pb"
@@ -58,6 +59,16 @@ func (p *UserWithGroup) ToPB() *pb.UserWithGroup {
 	}
 }
 
+func GetBcryptPassword(password string) string {
+	if password != "" {
+		hashedPass, _ := bcrypt.GenerateFromPassword(
+			[]byte(password), bcrypt.DefaultCost,
+		)
+		return string(hashedPass)
+	}
+	return ""
+}
+
 func NewUser(username, email, phoneNumber, description, password string, extra map[string]string) *User {
 	data := jsonutil.ToString(extra)
 	now := time.Now()
@@ -67,7 +78,7 @@ func NewUser(username, email, phoneNumber, description, password string, extra m
 		Email:       strutil.SimplifyString(email),
 		PhoneNumber: strutil.SimplifyString(phoneNumber),
 		Description: description,
-		Password:    password,
+		Password:    GetBcryptPassword(password),
 		Status:      constants.StatusActive,
 		CreateTime:  now,
 		UpdateTime:  now,

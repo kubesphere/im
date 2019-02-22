@@ -59,7 +59,7 @@ func ModifyPassword(ctx context.Context, req *pb.ModifyPasswordRequest) (*pb.Mod
 	}
 
 	attributes := map[string]interface{}{
-		constants.ColumnPassword:   req.Password,
+		constants.ColumnPassword:   models.GetBcryptPassword(req.Password),
 		constants.ColumnUpdateTime: time.Now(),
 	}
 
