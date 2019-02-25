@@ -81,7 +81,6 @@ compose-migrate-db: ## Migrate db in docker compose
 
 .PHONY: compose-up
 compose-up: ## Launch im in docker compose
-	mkdir data
 	docker-compose up -d im-db
 	make compose-migrate-db
 	docker-compose up -d
