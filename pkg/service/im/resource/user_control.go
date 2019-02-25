@@ -26,6 +26,7 @@ import (
 
 	"kubesphere.io/im/pkg/constants"
 	"kubesphere.io/im/pkg/db"
+	"kubesphere.io/im/pkg/global"
 	"kubesphere.io/im/pkg/models"
 	"kubesphere.io/im/pkg/pb"
 	"kubesphere.io/im/pkg/util/jsonutil"
@@ -36,7 +37,7 @@ func CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserR
 	user := models.NewUser(req.Username, req.Email, req.PhoneNumber, req.Description, req.Password, req.Extra)
 
 	// create new record
-	if err := db.Global().Create(user).Error; err != nil {
+	if err := global.Global().Database.Create(user).Error; err != nil {
 		logger.Errorf(ctx, "Insert user failed: %+v", err)
 		return nil, err
 	}
@@ -54,7 +55,7 @@ func DeleteUsers(ctx context.Context, req *pb.DeleteUsersRequest) (*pb.DeleteUse
 		return nil, err
 	}
 
-	tx := db.Global().Begin()
+	tx := global.Global().Database.Begin()
 	{
 		tx.Delete(models.UserGroupBinding{}, constants.ColumnUserId+" in (?)", userIds)
 		if err := tx.Error; err != nil {
@@ -113,7 +114,7 @@ func ModifyUser(ctx context.Context, req *pb.ModifyUserRequest) (*pb.ModifyUserR
 	}
 	attributes[constants.ColumnUpdateTime] = time.Now()
 
-	if err := db.Global().Table(constants.TableUser).
+	if err := global.Global().Database.Table(constants.TableUser).
 		Where(constants.ColumnUserId+" = ?", userId).
 		Updates(attributes).Error; err != nil {
 		logger.Errorf(ctx, "Update user [%s] failed: %+v", userId, err)
@@ -127,7 +128,7 @@ func ModifyUser(ctx context.Context, req *pb.ModifyUserRequest) (*pb.ModifyUserR
 
 func GetUser(ctx context.Context, userId string) (*models.User, error) {
 	var user = &models.User{UserId: userId}
-	if err := db.Global().Table(constants.TableUser).
+	if err := global.Global().Database.Table(constants.TableUser).
 		Take(user).Error; err != nil {
 		logger.Errorf(ctx, "Get user [%s] failed: %+v", userId, err)
 		return nil, err
@@ -191,7 +192,7 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 	var users []*models.User
 	var count int
 
-	if err := db.GetChain(db.Global().Table(constants.TableUser)).
+	if err := db.GetChain(global.Global().Database.Table(constants.TableUser)).
 		AddQueryOrderDir(req, constants.ColumnCreateTime).
 		BuildFilterConditions(req, constants.TableUser).
 		Offset(offset).
@@ -201,7 +202,7 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 		return nil, err
 	}
 
-	if err := db.GetChain(db.Global().Table(constants.TableUser)).
+	if err := db.GetChain(global.Global().Database.Table(constants.TableUser)).
 		BuildFilterConditions(req, constants.TableUser).
 		Count(&count).Error; err != nil {
 		logger.Errorf(ctx, "List users count failed: %+v", err)

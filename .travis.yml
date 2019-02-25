@@ -5,6 +5,10 @@ language: go
 go:
 - '1.11.4'
 go_import_path: kubesphere.io/im
+before_script:
+- make build
+- make compose-up
+- sleep 20
 script:
 - make fmt-check
 - make check

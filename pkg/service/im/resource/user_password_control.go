@@ -27,14 +27,14 @@ import (
 	"openpitrix.io/logger"
 
 	"kubesphere.io/im/pkg/constants"
-	"kubesphere.io/im/pkg/db"
+	"kubesphere.io/im/pkg/global"
 	"kubesphere.io/im/pkg/models"
 	"kubesphere.io/im/pkg/pb"
 )
 
 func ComparePassword(ctx context.Context, req *pb.ComparePasswordRequest) (*pb.ComparePasswordResponse, error) {
 	var user = &models.User{UserId: req.UserId}
-	if err := db.Global().Table(constants.TableUser).
+	if err := global.Global().Database.Table(constants.TableUser).
 		Take(user).Error; err != nil {
 		logger.Errorf(ctx, "Get user [%s] failed: %+v", req.UserId, err)
 		return nil, err
@@ -63,7 +63,7 @@ func ModifyPassword(ctx context.Context, req *pb.ModifyPasswordRequest) (*pb.Mod
 		constants.ColumnUpdateTime: time.Now(),
 	}
 
-	if err := db.Global().Table(constants.TableUser).
+	if err := global.Global().Database.Table(constants.TableUser).
 		Where(constants.ColumnUserId+" = ?", req.UserId).
 		Updates(attributes).Error; err != nil {
 		logger.Errorf(ctx, "Modify user [%s] password failed: %+v", req.UserId, err)

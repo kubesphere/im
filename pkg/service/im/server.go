@@ -19,12 +19,13 @@ package im
 import (
 	"os"
 
+	"github.com/google/gops/agent"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"openpitrix.io/logger"
 
 	"kubesphere.io/im/pkg/config"
-	"kubesphere.io/im/pkg/db"
+	"kubesphere.io/im/pkg/global"
 	"kubesphere.io/im/pkg/manager"
 	"kubesphere.io/im/pkg/pb"
 )
@@ -33,9 +34,12 @@ type Server struct {
 }
 
 func Serve(cfg *config.Config) {
-	s, err := OpenServer(cfg)
-	if err != nil {
-		os.Exit(1)
+	global.SetGlobal(cfg)
+	s := new(Server)
+	if err := agent.Listen(agent.Options{
+		ShutdownCleanup: true,
+	}); err != nil {
+		logger.Criticalf(nil, "failed to start gops agent")
 	}
 	if cfg.TlsEnabled {
 		creds, err := credentials.NewServerTLSFromFile(cfg.TlsCertFile, cfg.TlsKeyFile)
@@ -54,22 +58,4 @@ func Serve(cfg *config.Config) {
 				pb.RegisterIdentityManagerServer(server, s)
 			})
 	}
-}
-
-func OpenServer(cfg *config.Config) (*Server, error) {
-	cfg = cfg.Clone()
-
-	database, err := db.OpenDatabase(cfg)
-	if err != nil {
-		logger.Criticalf(nil, "Connect to database failed: %+v", err)
-		return nil, err
-	}
-
-	db.SetGlobal(database)
-	p := new(Server)
-	return p, nil
-}
-
-func (p *Server) Close() error {
-	return db.Global().Close()
 }

@@ -27,6 +27,7 @@ import (
 
 	"kubesphere.io/im/pkg/constants"
 	"kubesphere.io/im/pkg/db"
+	"kubesphere.io/im/pkg/global"
 	"kubesphere.io/im/pkg/models"
 	"kubesphere.io/im/pkg/pb"
 	"kubesphere.io/im/pkg/util/jsonutil"
@@ -54,11 +55,9 @@ func CreateGroup(ctx context.Context, req *pb.CreateGroupRequest) (*pb.CreateGro
 	if len(allParentGroupIds) > 0 {
 
 		var total int
-		db.Global().Table(constants.TableGroup).
+		if err := global.Global().Database.Table(constants.TableGroup).
 			Where(constants.ColumnGroupId+" in (?)", allParentGroupIds).
-			Count(&total)
-
-		if err := db.Global().Error; err != nil {
+			Count(&total).Error; err != nil {
 			logger.Errorf(ctx, "Get parent group ids failed: %+v", err)
 			return nil, err
 		}
@@ -73,7 +72,7 @@ func CreateGroup(ctx context.Context, req *pb.CreateGroupRequest) (*pb.CreateGro
 	}
 
 	// create new record
-	if err := db.Global().Create(group).Error; err != nil {
+	if err := global.Global().Database.Create(group).Error; err != nil {
 		logger.Errorf(ctx, "Insert group failed: %+v", err)
 		return nil, err
 	}
@@ -92,12 +91,12 @@ func DeleteGroups(ctx context.Context, req *pb.DeleteGroupsRequest) (*pb.DeleteG
 	}
 
 	// 1. check sub groups
-	subGroupIds, err := getAllSubGroupIds(ctx, groupIds)
+	subGroupIds, err := getAllSubGroupIds(ctx, groupIds, []string{constants.StatusActive})
 	if err != nil {
 		return nil, err
 	}
 	if len(subGroupIds) > 0 {
-		err := status.Errorf(codes.PermissionDenied, "there are still sub groups in group: %v", subGroupIds)
+		err := status.Errorf(codes.PermissionDenied, "there are still sub groups %v in group: %v", subGroupIds, groupIds)
 		logger.Errorf(ctx, "%+v", err)
 		return nil, err
 	}
@@ -120,7 +119,7 @@ func DeleteGroups(ctx context.Context, req *pb.DeleteGroupsRequest) (*pb.DeleteG
 		constants.ColumnUpdateTime: now,
 		constants.ColumnStatus:     constants.StatusDeleted,
 	}
-	if err := db.Global().Table(constants.TableGroup).
+	if err := global.Global().Database.Table(constants.TableGroup).
 		Where(constants.ColumnGroupId+" in (?)", groupIds).
 		Updates(attributes).Error; err != nil {
 		logger.Errorf(ctx, "Update group status failed: %+v", err)
@@ -162,7 +161,7 @@ func ModifyGroup(ctx context.Context, req *pb.ModifyGroupRequest) (*pb.ModifyGro
 	}
 	attributes[constants.ColumnUpdateTime] = time.Now()
 
-	if err := db.Global().Table(constants.TableGroup).
+	if err := global.Global().Database.Table(constants.TableGroup).
 		Where(constants.ColumnGroupId+" = ?", groupId).
 		Updates(attributes).Error; err != nil {
 		logger.Errorf(ctx, "Update group [%s] failed: %+v", groupId, err)
@@ -190,7 +189,7 @@ func GetParentGroupPath(ctx context.Context, parentGroupId string) (string, erro
 
 func GetGroup(ctx context.Context, groupId string) (*models.Group, error) {
 	var group = &models.Group{GroupId: groupId}
-	if err := db.Global().Table(constants.TableGroup).Take(group).Error; err != nil {
+	if err := global.Global().Database.Table(constants.TableGroup).Take(group).Error; err != nil {
 		logger.Errorf(ctx, "Get group [%s] failed: %+v", groupId, err)
 		return nil, err
 	}
@@ -226,7 +225,7 @@ func ListGroups(ctx context.Context, req *pb.ListGroupsRequest) (*pb.ListGroupsR
 	var groups []*models.Group
 	var count int
 
-	if err := db.GetChain(db.Global().Table(constants.TableGroup)).
+	if err := db.GetChain(global.Global().Database.Table(constants.TableGroup)).
 		AddQueryOrderDir(req, constants.ColumnCreateTime).
 		BuildFilterConditions(req, constants.TableGroup).
 		Offset(offset).
@@ -236,7 +235,7 @@ func ListGroups(ctx context.Context, req *pb.ListGroupsRequest) (*pb.ListGroupsR
 		return nil, err
 	}
 
-	if err := db.GetChain(db.Global().Table(constants.TableGroup)).
+	if err := db.GetChain(global.Global().Database.Table(constants.TableGroup)).
 		BuildFilterConditions(req, constants.TableGroup).
 		Count(&count).Error; err != nil {
 		logger.Errorf(ctx, "List group count failed: %+v", err)
@@ -283,10 +282,10 @@ func ListGroupsWithUser(ctx context.Context, req *pb.ListGroupsRequest) (*pb.Lis
 	}, nil
 }
 
-func getAllSubGroupIds(ctx context.Context, groupIds []string) ([]string, error) {
+func getAllSubGroupIds(ctx context.Context, groupIds []string, status []string) ([]string, error) {
 	var groups []*models.Group
 
-	tx := db.Global().Table(constants.TableGroup)
+	tx := global.Global().Database.Table(constants.TableGroup)
 	for _, groupId := range groupIds {
 		likeGroupId := "%" + groupId + "%"
 		tx = tx.Or(constants.ColumnGroupPath+" LIKE ?", likeGroupId)
@@ -298,7 +297,7 @@ func getAllSubGroupIds(ctx context.Context, groupIds []string) ([]string, error)
 
 	var allGroupId []string
 	for _, group := range groups {
-		if !strutil.Contains(groupIds, group.GroupId) {
+		if !strutil.Contains(groupIds, group.GroupId) && strutil.Contains(status, group.Status) {
 			allGroupId = append(allGroupId, group.GroupId)
 		}
 	}
