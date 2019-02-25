@@ -163,6 +163,7 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 	limit := db.GetLimitFromRequest(req)
 	offset := db.GetOffsetFromRequest(req)
 
+	var pbUsers []*pb.User
 	// 1. get group users
 	if len(req.GroupId) > 0 {
 		userIds, err := GetUserIdsByGroupIds(ctx, req.GroupId)
@@ -183,7 +184,7 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 		}
 		if len(req.UserId) == 0 {
 			return &pb.ListUsersResponse{
-				UserSet: []*pb.User{},
+				UserSet: pbUsers,
 				Total:   0,
 			}, nil
 		}
@@ -209,7 +210,6 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 		return nil, err
 	}
 
-	var pbUsers []*pb.User
 	for _, user := range users {
 		pbUsers = append(pbUsers, user.ToPB())
 	}
