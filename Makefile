@@ -81,6 +81,7 @@ compose-migrate-db: ## Migrate db in docker compose
 
 .PHONY: compose-up
 compose-up: ## Launch im in docker compose
+	mkdir data
 	docker-compose up -d im-db
 	make compose-migrate-db
 	docker-compose up -d
@@ -94,6 +95,12 @@ compose-update: build compose-up ## Update service in docker compose
 compose-down: ## Shutdown docker compose
 	docker-compose down
 	@echo "compose-down done"
+
+.PHONY: clean
+clean: compose-down ## Clean generated version file
+	-make -C ./pkg/version clean
+	rm -rf data
+	@echo "ok"
 
 .PHONY: generate-in-local
 generate-in-local: ## Generate code from protobuf file in local
