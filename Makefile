@@ -96,12 +96,6 @@ compose-down: ## Shutdown docker compose
 	docker-compose down
 	@echo "compose-down done"
 
-.PHONY: clean
-clean: compose-down ## Clean generated version file
-	-make -C ./pkg/version clean
-	rm -rf data
-	@echo "ok"
-
 .PHONY: generate-in-local
 generate-in-local: ## Generate code from protobuf file in local
 	cd api && make generate
