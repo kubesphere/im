@@ -18,7 +18,6 @@ package db
 
 import (
 	"strings"
-	"sync"
 
 	"github.com/fatih/structs"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -77,21 +76,6 @@ func GetLimitFromRequest(req RequestHadLimit) uint32 {
 		return DefaultLimit
 	}
 	return GetLimit(n)
-}
-
-var global *Database
-var globalMutex sync.RWMutex
-
-func SetGlobal(database *Database) {
-	globalMutex.Lock()
-	global = database
-	globalMutex.Unlock()
-}
-
-func Global() *Database {
-	globalMutex.RLock()
-	defer globalMutex.RUnlock()
-	return global
 }
 
 type Request interface {

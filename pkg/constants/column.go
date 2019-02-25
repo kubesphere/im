@@ -47,7 +47,7 @@ var IndexedColumns = map[string][]string{
 		ColumnUserId, ColumnEmail, ColumnPhoneNumber, ColumnStatus,
 	},
 	TableGroup: {
-		ColumnGroupId, ColumnGroupPath, ColumnStatus,
+		ColumnGroupId, ColumnParentGroupId, ColumnGroupPath, ColumnStatus,
 	},
 }
 
@@ -59,9 +59,9 @@ var SearchWordColumnTable = []string{
 // columns that can be search through sql 'like' operator
 var SearchColumns = map[string][]string{
 	TableUser: {
-		ColumnUserId, ColumnUsername, ColumnEmail, ColumnPhoneNumber, ColumnStatus,
+		ColumnUsername, ColumnEmail, ColumnPhoneNumber,
 	},
 	TableGroup: {
-		ColumnGroupId, ColumnGroupName, ColumnGroupPath, ColumnStatus,
+		ColumnGroupName, ColumnGroupPath,
 	},
 }

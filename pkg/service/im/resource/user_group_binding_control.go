@@ -24,14 +24,14 @@ import (
 	"openpitrix.io/logger"
 
 	"kubesphere.io/im/pkg/constants"
-	"kubesphere.io/im/pkg/db"
+	"kubesphere.io/im/pkg/global"
 	"kubesphere.io/im/pkg/models"
 	"kubesphere.io/im/pkg/pb"
 )
 
 func GetUserGroupBindings(ctx context.Context, userIds, groupIds []string) ([]*models.UserGroupBinding, error) {
 	var userGroupBindings []*models.UserGroupBinding
-	if err := db.Global().Table(constants.TableUserGroupBinding).
+	if err := global.Global().Database.Table(constants.TableUserGroupBinding).
 		Where(constants.ColumnGroupId+" in (?)", groupIds).
 		Where(constants.ColumnUserId+" in (?)", userIds).
 		Find(&userGroupBindings).
@@ -61,7 +61,7 @@ func JoinGroup(ctx context.Context, req *pb.JoinGroupRequest) (*pb.JoinGroupResp
 		return nil, err
 	}
 
-	tx := db.Global().Begin()
+	tx := global.Global().Database.Begin()
 	{
 		for _, groupId := range req.GroupId {
 			for _, userId := range req.UserId {
@@ -102,7 +102,7 @@ func LeaveGroup(ctx context.Context, req *pb.LeaveGroupRequest) (*pb.LeaveGroupR
 		return nil, err
 	}
 
-	if err := db.Global().
+	if err := global.Global().Database.
 		Where(constants.ColumnGroupId+" in (?)", req.GroupId).
 		Where(constants.ColumnUserId+" in (?)", req.UserId).
 		Delete(models.UserGroupBinding{}).Error; err != nil {
@@ -123,7 +123,7 @@ func GetGroupsByUserIds(ctx context.Context, userIds []string) ([]*models.Group,
 		"`user_group_binding`.user_id in (?)"
 
 	var groups []*models.Group
-	if err := db.Global().Raw(query, userIds).Scan(&groups).Error; err != nil {
+	if err := global.Global().Database.Raw(query, userIds).Scan(&groups).Error; err != nil {
 		logger.Errorf(ctx, "Get groups by user id failed: %+v", err)
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func GetUsersByGroupIds(ctx context.Context, groupIds []string) ([]*models.User,
  			user_group_binding.group_id in (?)
 	`
 	var users []*models.User
-	if err := db.Global().Raw(query, groupIds).Scan(&users).Error; err != nil {
+	if err := global.Global().Database.Raw(query, groupIds).Scan(&users).Error; err != nil {
 		logger.Errorf(ctx, "Get users by group id failed: %+v", err)
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func GetUsersByGroupIds(ctx context.Context, groupIds []string) ([]*models.User,
 }
 
 func GetUserIdsByGroupIds(ctx context.Context, groupIds []string) ([]string, error) {
-	rows, err := db.Global().Table(constants.TableUserGroupBinding).
+	rows, err := global.Global().Database.Table(constants.TableUserGroupBinding).
 		Select(constants.ColumnUserId).
 		Where(constants.ColumnGroupId+" in (?)", groupIds).
 		Rows()

@@ -1,20 +1,20 @@
-#Copyright 2019 The KubeSphere Authors.
+# Copyright 2019 The KubeSphere Authors.
 
-#Licensed under the Apache License, Version 2.0 (the "License");
-#you may not use this file except in compliance with the License.
-#You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 
-#Unless required by applicable law or agreed to in writing, software
-#distributed under the License is distributed on an "AS IS" BASIS,
-#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#See the License for the specific language governing permissions and
-#limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 PWD:=$(shell pwd)
 
-TARG.Name:=kubesphere
+TARG.Name:=kubesphereim
 TRAG.Gopkg:=kubesphere.io/im
 TRAG.Version:=$(TRAG.Gopkg)/pkg/version
 
@@ -22,8 +22,9 @@ GO_FMT:=goimports -l -w -e -local=kubesphere -srcdir=/go/src/$(TRAG.Gopkg)
 GO_MOD_TIDY:=go mod tidy
 GO_RACE:=go build -race
 GO_VET:=go vet
-GO_FILES:=./cmd ./pkg
-GO_PATH_FILES:=./cmd/... ./pkg/...
+GO_FILES:=./cmd ./pkg ./test
+GO_PATH_FILES:=./cmd/... ./pkg/... ./test/...
+COMPOSE_DB_CTRL=im-db-ctrl
 
 BUILDER_IMAGE=openpitrix/openpitrix-builder:release-v0.2.3
 RUN_IN_DOCKER:=docker run -it -v `pwd`:/go/src/$(TRAG.Gopkg) -v `pwd`/tmp/cache:/root/.cache/go-build  -w /go/src/$(TRAG.Gopkg) -e GOBIN=/go/src/$(TRAG.Gopkg)/tmp/bin -e USER_ID=`id -u` -e GROUP_ID=`id -g` $(BUILDER_IMAGE)
@@ -47,8 +48,52 @@ empty:=
 space:= $(empty) $(empty)
 CMDS=$(subst $(comma),$(space),$(CMD))
 
-test:
-	env GO111MODULE=on go test ./...
+.PHONY: build-flyway
+build-flyway: ## Build custom flyway image
+	docker build -t $(TARG.Name):flyway -f ./pkg/db/Dockerfile ./pkg/db/
+
+.PHONY: build
+build: build-flyway ## Build all im images
+	docker build -t $(TARG.Name) -f ./Dockerfile .
+	docker image prune -f 1>/dev/null 2>&1
+	@echo "build done"
+
+.PHONY: test
+test: ## Run all tests
+	make unit-test
+	make e2e-test
+	@echo "test done"
+
+.PHONY: unit-test
+unit-test: ## Run unit tests
+	env GO111MODULE=on go test -a -tags="unit" ./...
+	@echo "unit-test done"
+
+.PHONY: e2e-test
+e2e-test: ## Run integration tests
+	env GO111MODULE=on go test -a -tags="integration" ./test/e2e/...
+	@echo "e2e-test done"
+
+.PHONY: compose-migrate-db
+compose-migrate-db: ## Migrate db in docker compose
+	until docker-compose exec im-db bash -c "echo 'SELECT VERSION();' | mysql -uroot -ppassword"; do echo "waiting for mysql"; sleep 2; done;
+	docker-compose up $(COMPOSE_DB_CTRL)
+
+.PHONY: compose-up
+compose-up: ## Launch im in docker compose
+	docker-compose up -d im-db
+	make compose-migrate-db
+	docker-compose up -d
+	@echo "compose-up done"
+
+.PHONY: compose-update
+compose-update: build compose-up ## Update service in docker compose
+	@echo "compose-update done"
+
+.PHONY: compose-down
+compose-down: ## Shutdown docker compose
+	docker-compose down
+	@echo "compose-down done"
 
 .PHONY: generate-in-local
 generate-in-local: ## Generate code from protobuf file in local
