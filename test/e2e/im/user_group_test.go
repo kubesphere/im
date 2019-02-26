@@ -121,6 +121,17 @@ func TestUserGroup(t *testing.T) {
 	isGroupEqual(t, group, listUsersWithGroupResponse.UserSet[0].GroupSet[0], constants.StatusActive)
 	isUserEqual(t, user, listUsersWithGroupResponse.UserSet[0].User, constants.StatusActive)
 
+	// list users with root group id
+	listUsersWithGroupResponse, err = imClient.ListUsersWithGroup(ctx, &pb.ListUsersRequest{
+		RootGroupId: []string{group.GroupId},
+		Status:      []string{constants.StatusActive},
+	})
+	require.NoError(t, err)
+	require.EqualValues(t, listUsersWithGroupResponse.Total, 1)
+	require.EqualValues(t, len(listUsersWithGroupResponse.UserSet[0].GroupSet), 1)
+	isGroupEqual(t, group, listUsersWithGroupResponse.UserSet[0].GroupSet[0], constants.StatusActive)
+	isUserEqual(t, user, listUsersWithGroupResponse.UserSet[0].User, constants.StatusActive)
+
 	// delete group, has user, can not delete
 	_, err = imClient.DeleteGroups(ctx, &pb.DeleteGroupsRequest{
 		GroupId: []string{group.GroupId},
