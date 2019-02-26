@@ -102,11 +102,12 @@ message ListGroupsRequest {
 	uint32 offset = 4;
 	uint32 limit = 5;
 
-	repeated string parent_group_id = 6;
-	repeated string group_id = 7;
-	repeated string group_path = 8;
-	repeated string group_name = 9;
-	repeated string status = 10;
+	repeated string root_group_id = 6;
+	repeated string parent_group_id = 7;
+	repeated string group_id = 8;
+	repeated string group_path = 9;
+	repeated string group_name = 10;
+	repeated string status = 11;
 }
 
 message ListGroupsResponse {
@@ -190,12 +191,13 @@ message ListUsersRequest {
 	uint32 offset = 4;
 	uint32 limit = 5;
 
-	repeated string group_id = 6;
-	repeated string user_id = 7;
-	repeated string username = 8;
-	repeated string email = 9;
-	repeated string phone_number = 10;
-	repeated string status = 11;
+	repeated string root_group_id = 6;
+	repeated string group_id = 7;
+	repeated string user_id = 8;
+	repeated string username = 9;
+	repeated string email = 10;
+	repeated string phone_number = 11;
+	repeated string status = 12;
 }
 
 message ListUsersResponse {

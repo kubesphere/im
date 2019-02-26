@@ -91,7 +91,7 @@ func DeleteGroups(ctx context.Context, req *pb.DeleteGroupsRequest) (*pb.DeleteG
 	}
 
 	// 1. check sub groups
-	subGroupIds, err := getAllSubGroupIds(ctx, groupIds, []string{constants.StatusActive})
+	subGroupIds, err := getAllSubGroupIds(ctx, groupIds, constants.StatusActive)
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +213,7 @@ func GetGroupWithUser(ctx context.Context, groupId string) (*models.GroupWithUse
 }
 
 func ListGroups(ctx context.Context, req *pb.ListGroupsRequest) (*pb.ListGroupsResponse, error) {
+	req.RootGroupId = strutil.SimplifyStringList(req.RootGroupId)
 	req.ParentGroupId = strutil.SimplifyStringList(req.ParentGroupId)
 	req.GroupId = strutil.SimplifyStringList(req.GroupId)
 	req.GroupPath = strutil.SimplifyStringList(req.GroupPath)
@@ -228,6 +229,7 @@ func ListGroups(ctx context.Context, req *pb.ListGroupsRequest) (*pb.ListGroupsR
 	if err := db.GetChain(global.Global().Database.Table(constants.TableGroup)).
 		AddQueryOrderDir(req, constants.ColumnCreateTime).
 		BuildFilterConditions(req, constants.TableGroup).
+		BuildRootGroupIdConditions(req.GetRootGroupId()).
 		Offset(offset).
 		Limit(limit).
 		Find(&groups).Error; err != nil {
@@ -237,6 +239,7 @@ func ListGroups(ctx context.Context, req *pb.ListGroupsRequest) (*pb.ListGroupsR
 
 	if err := db.GetChain(global.Global().Database.Table(constants.TableGroup)).
 		BuildFilterConditions(req, constants.TableGroup).
+		BuildRootGroupIdConditions(req.GetRootGroupId()).
 		Count(&count).Error; err != nil {
 		logger.Errorf(ctx, "List group count failed: %+v", err)
 		return nil, err
@@ -282,7 +285,7 @@ func ListGroupsWithUser(ctx context.Context, req *pb.ListGroupsRequest) (*pb.Lis
 	}, nil
 }
 
-func getAllSubGroupIds(ctx context.Context, groupIds []string, status []string) ([]string, error) {
+func getAllSubGroupIds(ctx context.Context, groupIds []string, status ...string) ([]string, error) {
 	var groups []*models.Group
 
 	tx := global.Global().Database.Table(constants.TableGroup)
@@ -297,8 +300,10 @@ func getAllSubGroupIds(ctx context.Context, groupIds []string, status []string) 
 
 	var allGroupId []string
 	for _, group := range groups {
-		if !strutil.Contains(groupIds, group.GroupId) && strutil.Contains(status, group.Status) {
-			allGroupId = append(allGroupId, group.GroupId)
+		if !strutil.Contains(groupIds, group.GroupId) {
+			if len(status) == 0 || strutil.Contains(status, group.Status) {
+				allGroupId = append(allGroupId, group.GroupId)
+			}
 		}
 	}
 

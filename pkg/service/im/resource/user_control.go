@@ -164,7 +164,35 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 	offset := db.GetOffsetFromRequest(req)
 
 	var pbUsers []*pb.User
-	// 1. get group users
+
+	// get group
+	if len(req.RootGroupId) > 0 {
+		allGroupIds, err := getAllSubGroupIds(ctx, req.RootGroupId)
+		if err != nil {
+			return nil, err
+		}
+		allGroupIds = append(allGroupIds, req.RootGroupId...)
+
+		if len(req.GroupId) == 0 {
+			req.GroupId = allGroupIds
+		} else {
+			var inGroupIds []string
+			for _, groupId := range req.GroupId {
+				if strutil.Contains(allGroupIds, groupId) {
+					inGroupIds = append(inGroupIds, groupId)
+				}
+			}
+			req.GroupId = inGroupIds
+		}
+		if len(req.GroupId) == 0 {
+			return &pb.ListUsersResponse{
+				UserSet: pbUsers,
+				Total:   0,
+			}, nil
+		}
+	}
+
+	// get group users
 	if len(req.GroupId) > 0 {
 		userIds, err := GetUserIdsByGroupIds(ctx, req.GroupId)
 		if err != nil {
