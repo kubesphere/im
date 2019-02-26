@@ -170,8 +170,9 @@ func (c *Chain) BuildFilterConditions(req Request, tableName string, exclude ...
 }
 
 func (c *Chain) getSearchFilter(tableName string, value interface{}, exclude ...string) {
-	var conditions []string
+	var andConditions []string
 	if vs, ok := value.([]string); ok {
+		var orConditions []string
 		for _, v := range vs {
 			for _, column := range constants.SearchColumns[tableName] {
 				if strutil.Contains(exclude, column) {
@@ -179,17 +180,19 @@ func (c *Chain) getSearchFilter(tableName string, value interface{}, exclude ...
 				}
 				// if column suffix is _id, must exact match
 				if strings.HasSuffix(column, "_id") {
-					conditions = append(conditions, column+" = '"+v+"'")
+					orConditions = append(orConditions, column+" = '"+v+"'")
 				} else {
 					likeV := "%" + strutil.SimplifyString(v) + "%"
-					conditions = append(conditions, column+" LIKE '"+likeV+"'")
+					orConditions = append(orConditions, column+" LIKE '"+likeV+"'")
 				}
 			}
 		}
+		andConditions = append(andConditions, strings.Join(orConditions, " OR "))
+
 	} else if value != nil {
 		logger.Warnf(nil, "search_word [%+v] is not string", value)
 	}
-	condition := strings.Join(conditions, " OR ")
+	condition := strings.Join(andConditions, " AND ")
 	c.DB = c.DB.Where(condition)
 }
 
