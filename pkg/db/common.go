@@ -94,8 +94,9 @@ type RequestWithReverse interface {
 }
 
 const (
-	TagName              = "json"
-	SearchWordColumnName = "search_word"
+	TagName               = "json"
+	SearchWordColumnName  = "search_word"
+	RootGroupIdColumnName = "root_group_id"
 )
 
 func getReqValue(param interface{}) interface{} {
@@ -169,6 +170,19 @@ func (c *Chain) BuildFilterConditions(req Request, tableName string, exclude ...
 	return c.buildFilterConditions(req, tableName, exclude...)
 }
 
+func (c *Chain) BuildRootGroupIdConditions(rootGroupIds []string) *Chain {
+	if len(rootGroupIds) > 0 {
+		var conditions []string
+		for _, v := range rootGroupIds {
+			likeV := "%" + strutil.SimplifyString(v) + "%"
+			conditions = append(conditions, constants.ColumnGroupPath+" LIKE '"+likeV+"'")
+		}
+		condition := strings.Join(conditions, " OR ")
+		c.DB = c.DB.Where(condition)
+	}
+	return c
+}
+
 func (c *Chain) getSearchFilter(tableName string, value interface{}, exclude ...string) {
 	var andConditions []string
 	if vs, ok := value.([]string); ok {
@@ -190,7 +204,7 @@ func (c *Chain) getSearchFilter(tableName string, value interface{}, exclude ...
 		andConditions = append(andConditions, strings.Join(orConditions, " OR "))
 
 	} else if value != nil {
-		logger.Warnf(nil, "search_word [%+v] is not string", value)
+		logger.Warnf(nil, "search_word [%+v] is not []string", value)
 	}
 	condition := strings.Join(andConditions, " AND ")
 	c.DB = c.DB.Where(condition)
