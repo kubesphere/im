@@ -32,15 +32,6 @@ RUN_IN_DOCKER:=docker run -it -v `pwd`:/go/src/$(TRAG.Gopkg) -v `pwd`/tmp/cache:
 define get_diff_files
     $(eval DIFF_FILES=$(shell git diff --name-only --diff-filter=ad | grep -e "^(cmd|pkg)/.+\.go" -e "go.mod"))
 endef
-# Get project build flags
-define get_build_flags
-    $(eval SHORT_VERSION=$(shell git describe --tags --always --dirty="-dev"))
-    $(eval SHA1_VERSION=$(shell git show --quiet --pretty=format:%H))
-	$(eval DATE=$(shell date +'%Y-%m-%dT%H:%M:%S'))
-	$(eval BUILD_FLAG= -X $(TRAG.Version).ShortVersion="$(SHORT_VERSION)" \
-		-X $(TRAG.Version).GitSha1Version="$(SHA1_VERSION)" \
-		-X $(TRAG.Version).BuildDate="$(DATE)")
-endef
 
 CMD?=...
 comma:= ,

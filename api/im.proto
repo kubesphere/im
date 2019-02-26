@@ -96,7 +96,7 @@ message GetGroupWithUserResponse {
 }
 
 message ListGroupsRequest {
-	string search_word = 1;
+	repeated string search_word = 1;
 	string sort_key = 2;
 	bool reverse = 3;
 	uint32 offset = 4;
@@ -184,7 +184,7 @@ message GetUserWithGroupResponse {
 }
 
 message ListUsersRequest {
-	string search_word = 1;
+	repeated string search_word = 1;
 	string sort_key = 2;
 	bool reverse = 3;
 	uint32 offset = 4;
