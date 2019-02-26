@@ -126,6 +126,15 @@ func TestGroup(t *testing.T) {
 	childGroup2.ParentGroupId = parentGroup.GroupId
 	childGroup2.GroupPath = childGroup2.ParentGroupId + "." + childGroup2.GroupId
 
+	// list child group2, use root group id
+	listGroupsResponse, err = imClient.ListGroups(ctx, &pb.ListGroupsRequest{
+		RootGroupId: []string{childGroup2.GroupId},
+		Status:      []string{constants.StatusActive},
+	})
+	require.NoError(t, err)
+	require.EqualValues(t, listGroupsResponse.Total, 1)
+	isGroupEqual(t, childGroup2, listGroupsResponse.GroupSet[0], constants.StatusActive)
+
 	// modify child group2, move child group2 to child group1
 	childGroup2.GroupName = "new test child2"
 	childGroup2.Description = "new for test child2"
