@@ -26,7 +26,7 @@ import (
 	"kubesphere.io/im/pkg/pb"
 	"kubesphere.io/im/pkg/util/idutil"
 	"kubesphere.io/im/pkg/util/jsonutil"
-	"kubesphere.io/im/pkg/util/strutil"
+	"kubesphere.io/im/pkg/util/stringutil"
 )
 
 type User struct {
@@ -74,16 +74,16 @@ func NewUser(username, email, phoneNumber, description, password string, extra m
 	now := time.Now()
 	user := &User{
 		UserId:      idutil.GetUuid(constants.PrefixUserId),
-		Username:    strutil.SimplifyString(username),
-		Email:       strutil.SimplifyString(email),
-		PhoneNumber: strutil.SimplifyString(phoneNumber),
+		Username:    stringutil.SimplifyString(username),
+		Email:       stringutil.SimplifyString(email),
+		PhoneNumber: stringutil.SimplifyString(phoneNumber),
 		Description: description,
 		Password:    GetBcryptPassword(password),
 		Status:      constants.StatusActive,
 		CreateTime:  now,
 		UpdateTime:  now,
 		StatusTime:  now,
-		Extra:       strutil.NewString(data),
+		Extra:       stringutil.NewString(data),
 	}
 	return user
 }

@@ -26,7 +26,7 @@ import (
 	"kubesphere.io/im/pkg/pb"
 	"kubesphere.io/im/pkg/util/idutil"
 	"kubesphere.io/im/pkg/util/jsonutil"
-	"kubesphere.io/im/pkg/util/strutil"
+	"kubesphere.io/im/pkg/util/stringutil"
 )
 
 type Group struct {
@@ -77,17 +77,17 @@ func NewGroup(parentGroupId, parentGroupPath, groupName, description string, ext
 	data := jsonutil.ToString(extra)
 	now := time.Now()
 	group := &Group{
-		ParentGroupId:  strutil.SimplifyString(parentGroupId),
-		GroupId:        strutil.SimplifyString(groupId),
-		GroupPath:      strutil.SimplifyString(groupPath),
+		ParentGroupId:  stringutil.SimplifyString(parentGroupId),
+		GroupId:        stringutil.SimplifyString(groupId),
+		GroupPath:      stringutil.SimplifyString(groupPath),
 		GroupName:      groupName,
 		Description:    description,
 		Status:         constants.StatusActive,
 		CreateTime:     now,
 		UpdateTime:     now,
 		StatusTime:     now,
-		Extra:          strutil.NewString(data),
-		GroupPathLevel: strings.Count(strutil.SimplifyString(groupPath), constants.GroupPathSep) + 1,
+		Extra:          stringutil.NewString(data),
+		GroupPathLevel: strings.Count(stringutil.SimplifyString(groupPath), constants.GroupPathSep) + 1,
 	}
 	return group
 }

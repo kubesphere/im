@@ -25,7 +25,7 @@ import (
 	"openpitrix.io/logger"
 
 	"kubesphere.io/im/pkg/constants"
-	"kubesphere.io/im/pkg/util/strutil"
+	"kubesphere.io/im/pkg/util/stringutil"
 )
 
 type RequestHadOffset interface {
@@ -139,7 +139,7 @@ func GetDisplayColumns(displayColumns []string, wholeColumns []string) []string 
 	} else {
 		var newDisplayColumns []string
 		for _, column := range displayColumns {
-			if strutil.Contains(wholeColumns, column) {
+			if stringutil.Contains(wholeColumns, column) {
 				newDisplayColumns = append(newDisplayColumns, column)
 			}
 		}
@@ -174,7 +174,7 @@ func (c *Chain) BuildRootGroupIdConditions(rootGroupIds []string) *Chain {
 	if len(rootGroupIds) > 0 {
 		var conditions []string
 		for _, v := range rootGroupIds {
-			likeV := "%" + strutil.SimplifyString(v) + "%"
+			likeV := "%" + stringutil.SimplifyString(v) + "%"
 			conditions = append(conditions, constants.ColumnGroupPath+" LIKE '"+likeV+"'")
 		}
 		condition := strings.Join(conditions, " OR ")
@@ -189,14 +189,14 @@ func (c *Chain) getSearchFilter(tableName string, value interface{}, exclude ...
 		var orConditions []string
 		for _, v := range vs {
 			for _, column := range constants.SearchColumns[tableName] {
-				if strutil.Contains(exclude, column) {
+				if stringutil.Contains(exclude, column) {
 					continue
 				}
 				// if column suffix is _id, must exact match
 				if strings.HasSuffix(column, "_id") {
 					orConditions = append(orConditions, column+" = '"+v+"'")
 				} else {
-					likeV := "%" + strutil.SimplifyString(v) + "%"
+					likeV := "%" + stringutil.SimplifyString(v) + "%"
 					orConditions = append(orConditions, column+" LIKE '"+likeV+"'")
 				}
 			}
@@ -215,14 +215,14 @@ func (c *Chain) buildFilterConditions(req Request, tableName string, exclude ...
 		column := getFieldName(field)
 		param := field.Value()
 		indexedColumns, ok := constants.IndexedColumns[tableName]
-		if ok && strutil.Contains(indexedColumns, column) {
+		if ok && stringutil.Contains(indexedColumns, column) {
 			value := getReqValue(param)
 			if value != nil {
 				key := column
 				c.DB = c.Where(key+" in (?)", value)
 			}
 		}
-		if column == SearchWordColumnName && strutil.Contains(constants.SearchWordColumnTable, tableName) {
+		if column == SearchWordColumnName && stringutil.Contains(constants.SearchWordColumnTable, tableName) {
 			value := getReqValue(param)
 			c.getSearchFilter(tableName, value, exclude...)
 		}
