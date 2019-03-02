@@ -30,7 +30,7 @@ import (
 	"kubesphere.io/im/pkg/models"
 	"kubesphere.io/im/pkg/pb"
 	"kubesphere.io/im/pkg/util/jsonutil"
-	"kubesphere.io/im/pkg/util/strutil"
+	"kubesphere.io/im/pkg/util/stringutil"
 )
 
 func CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
@@ -104,13 +104,13 @@ func ModifyUser(ctx context.Context, req *pb.ModifyUserRequest) (*pb.ModifyUserR
 		attributes[constants.ColumnDescription] = req.Description
 	}
 	if req.Email != "" {
-		attributes[constants.ColumnEmail] = strutil.SimplifyString(req.Email)
+		attributes[constants.ColumnEmail] = stringutil.SimplifyString(req.Email)
 	}
 	if req.PhoneNumber != "" {
-		attributes[constants.ColumnPhoneNumber] = strutil.SimplifyString(req.PhoneNumber)
+		attributes[constants.ColumnPhoneNumber] = stringutil.SimplifyString(req.PhoneNumber)
 	}
 	if len(req.Extra) > 0 {
-		attributes[constants.ColumnExtra] = strutil.NewString(jsonutil.ToString(req.Extra))
+		attributes[constants.ColumnExtra] = stringutil.NewString(jsonutil.ToString(req.Extra))
 	}
 	attributes[constants.ColumnUpdateTime] = time.Now()
 
@@ -153,12 +153,12 @@ func GetUserWithGroup(ctx context.Context, userId string) (*models.UserWithGroup
 }
 
 func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResponse, error) {
-	req.GroupId = strutil.SimplifyStringList(req.GroupId)
-	req.UserId = strutil.SimplifyStringList(req.UserId)
-	req.Username = strutil.SimplifyStringList(req.Username)
-	req.Email = strutil.SimplifyStringList(req.Email)
-	req.PhoneNumber = strutil.SimplifyStringList(req.PhoneNumber)
-	req.Status = strutil.SimplifyStringList(req.Status)
+	req.GroupId = stringutil.SimplifyStringList(req.GroupId)
+	req.UserId = stringutil.SimplifyStringList(req.UserId)
+	req.Username = stringutil.SimplifyStringList(req.Username)
+	req.Email = stringutil.SimplifyStringList(req.Email)
+	req.PhoneNumber = stringutil.SimplifyStringList(req.PhoneNumber)
+	req.Status = stringutil.SimplifyStringList(req.Status)
 
 	limit := db.GetLimitFromRequest(req)
 	offset := db.GetOffsetFromRequest(req)
@@ -178,7 +178,7 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 		} else {
 			var inGroupIds []string
 			for _, groupId := range req.GroupId {
-				if strutil.Contains(allGroupIds, groupId) {
+				if stringutil.Contains(allGroupIds, groupId) {
 					inGroupIds = append(inGroupIds, groupId)
 				}
 			}
@@ -204,7 +204,7 @@ func ListUsers(ctx context.Context, req *pb.ListUsersRequest) (*pb.ListUsersResp
 		} else {
 			var inUserIds []string
 			for _, userId := range req.UserId {
-				if strutil.Contains(userIds, userId) {
+				if stringutil.Contains(userIds, userId) {
 					inUserIds = append(inUserIds, userId)
 				}
 			}

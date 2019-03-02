@@ -31,11 +31,11 @@ import (
 	"kubesphere.io/im/pkg/models"
 	"kubesphere.io/im/pkg/pb"
 	"kubesphere.io/im/pkg/util/jsonutil"
-	"kubesphere.io/im/pkg/util/strutil"
+	"kubesphere.io/im/pkg/util/stringutil"
 )
 
 func CreateGroup(ctx context.Context, req *pb.CreateGroupRequest) (*pb.CreateGroupResponse, error) {
-	parentGroupId := strutil.SimplifyString(req.ParentGroupId)
+	parentGroupId := stringutil.SimplifyString(req.ParentGroupId)
 	parentGroupPath, err := GetParentGroupPath(ctx, parentGroupId)
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func ModifyGroup(ctx context.Context, req *pb.ModifyGroupRequest) (*pb.ModifyGro
 		groupPath := models.GetGroupPath(parentGroupPath, group.GroupId)
 		attributes[constants.ColumnParentGroupId] = req.ParentGroupId
 		attributes[constants.ColumnGroupPath] = groupPath
-		attributes[constants.ColumnGroupPathLevel] = strings.Count(strutil.SimplifyString(groupPath), constants.GroupPathSep) + 1
+		attributes[constants.ColumnGroupPathLevel] = strings.Count(stringutil.SimplifyString(groupPath), constants.GroupPathSep) + 1
 	}
 	if req.GroupName != "" {
 		attributes[constants.ColumnGroupName] = req.GroupName
@@ -157,7 +157,7 @@ func ModifyGroup(ctx context.Context, req *pb.ModifyGroupRequest) (*pb.ModifyGro
 		attributes[constants.ColumnDescription] = req.Description
 	}
 	if len(req.Extra) > 0 {
-		attributes[constants.ColumnExtra] = strutil.NewString(jsonutil.ToString(req.Extra))
+		attributes[constants.ColumnExtra] = stringutil.NewString(jsonutil.ToString(req.Extra))
 	}
 	attributes[constants.ColumnUpdateTime] = time.Now()
 
@@ -213,12 +213,12 @@ func GetGroupWithUser(ctx context.Context, groupId string) (*models.GroupWithUse
 }
 
 func ListGroups(ctx context.Context, req *pb.ListGroupsRequest) (*pb.ListGroupsResponse, error) {
-	req.RootGroupId = strutil.SimplifyStringList(req.RootGroupId)
-	req.ParentGroupId = strutil.SimplifyStringList(req.ParentGroupId)
-	req.GroupId = strutil.SimplifyStringList(req.GroupId)
-	req.GroupPath = strutil.SimplifyStringList(req.GroupPath)
-	req.GroupName = strutil.SimplifyStringList(req.GroupName)
-	req.Status = strutil.SimplifyStringList(req.Status)
+	req.RootGroupId = stringutil.SimplifyStringList(req.RootGroupId)
+	req.ParentGroupId = stringutil.SimplifyStringList(req.ParentGroupId)
+	req.GroupId = stringutil.SimplifyStringList(req.GroupId)
+	req.GroupPath = stringutil.SimplifyStringList(req.GroupPath)
+	req.GroupName = stringutil.SimplifyStringList(req.GroupName)
+	req.Status = stringutil.SimplifyStringList(req.Status)
 
 	limit := db.GetLimitFromRequest(req)
 	offset := db.GetOffsetFromRequest(req)
@@ -300,8 +300,8 @@ func getAllSubGroupIds(ctx context.Context, groupIds []string, status ...string)
 
 	var allGroupId []string
 	for _, group := range groups {
-		if !strutil.Contains(groupIds, group.GroupId) {
-			if len(status) == 0 || strutil.Contains(status, group.Status) {
+		if !stringutil.Contains(groupIds, group.GroupId) {
+			if len(status) == 0 || stringutil.Contains(status, group.Status) {
 				allGroupId = append(allGroupId, group.GroupId)
 			}
 		}
