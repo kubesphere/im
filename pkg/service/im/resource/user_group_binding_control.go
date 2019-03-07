@@ -117,13 +117,12 @@ func LeaveGroup(ctx context.Context, req *pb.LeaveGroupRequest) (*pb.LeaveGroupR
 }
 
 func GetGroupsByUserIds(ctx context.Context, userIds []string) ([]*models.Group, error) {
-	const query = "select `group`.* from " +
-		"`group`,`user_group_binding` where " +
-		"`user_group_binding`.group_id=`group`.group_id and " +
-		"`user_group_binding`.user_id in (?)"
-
 	var groups []*models.Group
-	if err := global.Global().Database.Raw(query, userIds).Scan(&groups).Error; err != nil {
+	if err := global.Global().Database.
+		Table(constants.TableGroup).
+		Select("`group`.*").
+		Joins("JOIN `user_group_binding` on `user_group_binding`.user_id in (?) AND `user_group_binding`.group_id=`group`.group_id", userIds).
+		Scan(&groups).Error; err != nil {
 		logger.Errorf(ctx, "Get groups by user id failed: %+v", err)
 		return nil, err
 	}
@@ -132,15 +131,12 @@ func GetGroupsByUserIds(ctx context.Context, userIds []string) ([]*models.Group,
 }
 
 func GetUsersByGroupIds(ctx context.Context, groupIds []string) ([]*models.User, error) {
-	const query = `
-		select user.* from
-			user, user_group_binding
-		where
-			user_group_binding.user_id=user.user_id and
- 			user_group_binding.group_id in (?)
-	`
 	var users []*models.User
-	if err := global.Global().Database.Raw(query, groupIds).Scan(&users).Error; err != nil {
+	if err := global.Global().Database.
+		Table(constants.TableUser).
+		Select("`user`.*").
+		Joins("JOIN `user_group_binding` on `user_group_binding`.group_id in (?) AND `user_group_binding`.user_id=`user`.user_id", groupIds).
+		Scan(&users).Error; err != nil {
 		logger.Errorf(ctx, "Get users by group id failed: %+v", err)
 		return nil, err
 	}
