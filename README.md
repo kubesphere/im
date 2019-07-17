@@ -1,1 +1,1 @@
-# A general identify manage system
+# A general identity management system
