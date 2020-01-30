@@ -15,7 +15,7 @@ require (
 	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/google/gops v0.3.6
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
-	github.com/jinzhu/gorm v1.9.2
+	github.com/jinzhu/gorm v1.9.10
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3 // indirect
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
